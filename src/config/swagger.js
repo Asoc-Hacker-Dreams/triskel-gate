@@ -126,7 +126,7 @@ const options = {
             },
             qrCodePath: {
               type: 'string',
-              example: '/qr-codes/HACKBCN-2025-001.png'
+              example: '/qr-codes/triskelgate-2025-001.png'
             },
             createdAt: {
               type: 'string',
