@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hackbcn-validator-v1.0.0';
+const CACHE_NAME = 'triskelgate-validator-v1.0.0';
 const STATIC_CACHE = 'static-v1.0.0';
 const DYNAMIC_CACHE = 'dynamic-v1.0.0';
 

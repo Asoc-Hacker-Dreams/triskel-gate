@@ -3,49 +3,49 @@
   "orderNumber": "TEST-1749474824360",
   "validTickets": [
     {
-      "ticketNumber": "HACKBCN-2025-1749474824362-1",
+      "ticketNumber": "triskelgate-2025-1749474824362-1",
       "type": "Early Bird",
       "price": 25,
-      "qrCode": "{\"ticketId\":\"9c7f6731-5b37-4e01-b2e8-89e4f3c5c9d8\",\"eventId\":1,\"ticketNumber\":\"HACKBCN-2025-1749474824362-1\",\"type\":\"Early Bird\",\"timestamp\":1749474824362}",
+      "qrCode": "{\"ticketId\":\"9c7f6731-5b37-4e01-b2e8-89e4f3c5c9d8\",\"eventId\":1,\"ticketNumber\":\"triskelgate-2025-1749474824362-1\",\"type\":\"Early Bird\",\"timestamp\":1749474824362}",
       "holderName": "Titular 1",
-      "qrImageUrl": "http://localhost:3001/qr-codes/HACKBCN-2025-1749474824362-1.png"
+      "qrImageUrl": "http://localhost:3001/qr-codes/triskelgate-2025-1749474824362-1.png"
     },
     {
-      "ticketNumber": "HACKBCN-2025-1749474824404-2",
+      "ticketNumber": "triskelgate-2025-1749474824404-2",
       "type": "General",
       "price": 35,
-      "qrCode": "{\"ticketId\":\"d3046bf2-3c70-4b73-b9e4-4365e5b1600b\",\"eventId\":1,\"ticketNumber\":\"HACKBCN-2025-1749474824404-2\",\"type\":\"General\",\"timestamp\":1749474824404}",
+      "qrCode": "{\"ticketId\":\"d3046bf2-3c70-4b73-b9e4-4365e5b1600b\",\"eventId\":1,\"ticketNumber\":\"triskelgate-2025-1749474824404-2\",\"type\":\"General\",\"timestamp\":1749474824404}",
       "holderName": "Titular 2",
-      "qrImageUrl": "http://localhost:3001/qr-codes/HACKBCN-2025-1749474824404-2.png"
+      "qrImageUrl": "http://localhost:3001/qr-codes/triskelgate-2025-1749474824404-2.png"
     },
     {
-      "ticketNumber": "HACKBCN-2025-1749474824417-3",
+      "ticketNumber": "triskelgate-2025-1749474824417-3",
       "type": "VIP",
       "price": 75,
-      "qrCode": "{\"ticketId\":\"a785983d-a1b0-4f76-9305-af1d6a533a8a\",\"eventId\":1,\"ticketNumber\":\"HACKBCN-2025-1749474824417-3\",\"type\":\"VIP\",\"timestamp\":1749474824417}",
+      "qrCode": "{\"ticketId\":\"a785983d-a1b0-4f76-9305-af1d6a533a8a\",\"eventId\":1,\"ticketNumber\":\"triskelgate-2025-1749474824417-3\",\"type\":\"VIP\",\"timestamp\":1749474824417}",
       "holderName": "Titular 3",
-      "qrImageUrl": "http://localhost:3001/qr-codes/HACKBCN-2025-1749474824417-3.png"
+      "qrImageUrl": "http://localhost:3001/qr-codes/triskelgate-2025-1749474824417-3.png"
     }
   ],
   "usedTicket": {
-    "ticketNumber": "HACKBCN-2025-USED-1749474824433",
-    "qrCode": "{\"ticketId\":\"227bbc48-a626-4587-b433-97c71f5490e2\",\"eventId\":1,\"ticketNumber\":\"HACKBCN-2025-USED-1749474824433\",\"type\":\"General\",\"timestamp\":1749474824433}",
+    "ticketNumber": "triskelgate-2025-USED-1749474824433",
+    "qrCode": "{\"ticketId\":\"227bbc48-a626-4587-b433-97c71f5490e2\",\"eventId\":1,\"ticketNumber\":\"triskelgate-2025-USED-1749474824433\",\"type\":\"General\",\"timestamp\":1749474824433}",
     "status": "USED",
-    "qrImageUrl": "http://localhost:3001/qr-codes/HACKBCN-2025-USED-1749474824433.png"
+    "qrImageUrl": "http://localhost:3001/qr-codes/triskelgate-2025-USED-1749474824433.png"
   },
   "testInstructions": {
     "validatorUrl": "http://localhost:3001/validator.html",
     "credentials": {
       "admin": {
-        "email": "admin@hackbcn.com",
+        "email": "admin@triskelgate.com",
         "password": "admin123"
       },
       "staff": {
-        "email": "staff@hackbcn.com",
+        "email": "staff@triskelgate.com",
         "password": "staff123"
       },
       "validator": {
-        "email": "validator@hackbcn.com",
+        "email": "validator@triskelgate.com",
         "password": "staff123"
       }
     }

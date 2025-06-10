@@ -21,7 +21,7 @@ EOF
 # Función para crear PNG desde SVG usando convert (ImageMagick)
 create_png() {
     size=$1
-    output_file="/Users/specter/Repos/hackerdreams/HackBCNCon/payment-platform/public/icons/icon-${size}x${size}.png"
+    output_file="/Users/specter/Repos/hackerdreams/triskelgate/payment-platform/public/icons/icon-${size}x${size}.png"
     
     # Verificar si ImageMagick está disponible
     if command -v convert >/dev/null 2>&1; then
@@ -45,4 +45,4 @@ create_png 192
 create_png 384
 create_png 512
 
-echo "Iconos creados en /Users/specter/Repos/hackerdreams/HackBCNCon/payment-platform/public/icons/"
+echo "Iconos creados en /Users/specter/Repos/hackerdreams/triskelgate/payment-platform/public/icons/"

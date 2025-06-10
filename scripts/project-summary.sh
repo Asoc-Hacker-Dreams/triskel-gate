@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Script para generar resumen completo del proyecto HackBCN Payment Platform
-echo "🎫 GENERANDO RESUMEN COMPLETO - HackBCN Payment Platform"
+# Script para generar resumen completo del proyecto triskelgate Payment Platform
+echo "🎫 GENERANDO RESUMEN COMPLETO - triskelgate Payment Platform"
 echo "=================================================================="
 
 # Colores
@@ -237,7 +237,7 @@ echo "   npm run test:coverage       # Cobertura"
 echo -e "\n${GREEN}🎉 RESUMEN FINAL${NC}"
 echo "================"
 
-echo -e "${GREEN}✅ PLATAFORMA HACKBCN PAYMENT COMPLETADA${NC}"
+echo -e "${GREEN}✅ PLATAFORMA triskelgate PAYMENT COMPLETADA${NC}"
 echo ""
 echo "🎯 Características principales:"
 echo "   • Superior a Eventbrite en funcionalidades"
@@ -259,8 +259,8 @@ echo "   • PWA installable"
 echo "   • Docker multi-stage"
 
 echo ""
-echo -e "${YELLOW}🚀 La plataforma está lista para ser usada en HackBCN 2025!${NC}"
+echo -e "${YELLOW}🚀 La plataforma está lista para ser usada en triskelgate 2025!${NC}"
 
 echo -e "\n=================================================================="
-echo "🎫 HackBCN Payment Platform - Resumen generado $(date)"
+echo "🎫 triskelgate Payment Platform - Resumen generado $(date)"
 echo "=================================================================="
