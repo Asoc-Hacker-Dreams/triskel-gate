@@ -1,0 +1,67 @@
+# Dependencias
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Archivos de desarrollo
+.env.local
+.env.development
+.env.test
+*.log
+
+# Archivos de testing
+coverage/
+tests/
+**/*.test.js
+**/*.spec.js
+jest.config.json
+
+# Git
+.git/
+.gitignore
+.github/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Documentación
+README.md
+docs/
+*.md
+
+# Archivos temporales
+tmp/
+temp/
+.cache/
+
+# Archivos de configuración local
+.eslintrc*
+.prettierrc*
+nodemon.json
+
+# Base de datos de desarrollo (se creará en el contenedor)
+data/platform.db
+data/platform.db-shm
+data/platform.db-wal
+
+# Logs locales
+logs/
+*.log
+
+# QR codes generados localmente
+public/qr-codes/*.png
+!public/qr-codes/.gitkeep

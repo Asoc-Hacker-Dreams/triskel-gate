@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  triskelgate-payment-platform:
+    build:
+      context: .
+      target: development
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_PATH=/app/data/platform.db
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+      - STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
+      - LOG_LEVEL=debug
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./public/qr-codes:/app/public/qr-codes
+    networks:
+      - triskelgate-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Base de datos SQLite (para desarrollo local)
+  # En producción usarías PostgreSQL o MySQL
+  db-admin:
+    image: sqlite-web:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.sqlite-web
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      - SQLITE_DATABASE=/data/platform.db
+    networks:
+      - triskelgate-network
+    depends_on:
+      - triskelgate-payment-platform
+
+  # Nginx como reverse proxy (opcional para producción)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    networks:
+      - triskelgate-network
+    depends_on:
+      - triskelgate-payment-platform
+    profiles:
+      - production
+
+networks:
+  triskelgate-network:
+    driver: bridge
+
+volumes:
+  platform-data:
+    driver: local
+  platform-logs:
+    driver: local

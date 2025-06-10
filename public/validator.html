@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4338ca">
+    <meta name="description" content="Plataforma de validación de tickets con códigos QR para eventos TriskelGate">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="TicketValidator">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <title>TriskelGate - Validador de Tickets</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        .scanner-section {
+            margin-bottom: 2rem;
+        }
+
+        .manual-input {
+            margin-top: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        input[type="text"], input[type="password"], input[type="email"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+        }
+
+        .btn-secondary {
+            background: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #2d3748;
+        }
+
+        .result {
+            margin-top: 2rem;
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .result.success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .result.error {
+            background: #f56565;
+            color: white;
+        }
+
+        .result.info {
+            background: #4299e1;
+            color: white;
+        }
+
+        .login-section {
+            margin-bottom: 2rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .ticket-info {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            text-align: left;
+        }
+
+        .ticket-info h3 {
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .ticket-info p {
+            margin-bottom: 0.25rem;
+            color: #4a5568;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #4a5568;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🎫 TriskelGate</div>
+        <div class="subtitle">Validador de Tickets</div>
+
+        <!-- Sección de Login -->
+        <div id="loginSection" class="login-section">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" placeholder="validator@hackbcn.com">
+            </div>
+            <div class="form-group">
+                <label for="password">Contraseña:</label>
+                <input type="password" id="password" placeholder="••••••••">
+            </div>
+            <button class="btn" onclick="login()">Iniciar Sesión</button>
+        </div>
+
+        <!-- Sección de Validación -->
+        <div id="validationSection" class="hidden">
+            <div class="scanner-section">
+                <h3>Escanear Código QR</h3>
+                <p>Escanea el código QR del ticket o ingresa manualmente:</p>
+                
+                <div class="manual-input">
+                    <div class="form-group">
+                        <label for="qrCode">Código QR:</label>
+                        <input type="text" id="qrCode" placeholder="Ingresa o escanea el código QR">
+                    </div>
+                    <div class="form-group">
+                        <label for="location">Ubicación (opcional):</label>
+                        <input type="text" id="location" placeholder="Ej: Entrada principal">
+                    </div>
+                    <button class="btn" onclick="validateTicket()">Validar Ticket</button>
+                    <button class="btn btn-secondary" onclick="showStats()">Ver Estadísticas</button>
+                    <button class="btn btn-secondary" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Estadísticas -->
+        <div id="statsSection" class="hidden">
+            <h3>Estadísticas de Validación</h3>
+            <div class="stats" id="statsContainer">
+                <!-- Se llena dinámicamente -->
+            </div>
+            <button class="btn btn-secondary" onclick="backToValidation()">Volver a Validación</button>
+        </div>
+
+        <!-- Resultados -->
+        <div id="result" class="result hidden"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001';
+        let authToken = localStorage.getItem('hackbcn_token');
+        let currentUser = null;
+
+        // Verificar si ya está logueado al cargar
+        window.onload = function() {
+            if (authToken) {
+                showValidationSection();
+            }
+        };
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showResult('Por favor completa todos los campos', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('hackbcn_token', authToken);
+                    showValidationSection();
+                    showResult(`¡Bienvenido ${currentUser.name}!`, 'success');
+                } else {
+                    showResult(data.message || 'Error en el login', 'error');
+                }
+            } catch (error) {
+                showResult('Error de conexión', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        async function validateTicket() {
+            const qrCode = document.getElementById('qrCode').value;
+            const location = document.getElementById('location').value;
+
+            if (!qrCode) {
+                showResult('Por favor ingresa un código QR', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/validate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ 
+                        qrCode, 
+                        location,
+                        staffId: currentUser?.id,
+                        deviceInfo: navigator.userAgent
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult('✅ Ticket válido', 'success');
+                    if (data.ticket) {
+                        showTicketInfo(data.ticket);
+                    }
+                } else {
+                    showResult(`❌ ${data.message}`, 'error');
+                }
+
+                // Limpiar el campo
+                document.getElementById('qrCode').value = '';
+            } catch (error) {
+                showResult('Error de conexión', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        async function showStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('validationSection').classList.add('hidden');
+                    document.getElementById('statsSection').classList.remove('hidden');
+                    renderStats(data.stats);
+                } else {
+                    showResult('Error obteniendo estadísticas', 'error');
+                }
+            } catch (error) {
+                showResult('Error de conexión', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        function renderStats(stats) {
+            const container = document.getElementById('statsContainer');
+            container.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalValidated || 0}</div>
+                    <div class="stat-label">Validados</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalTickets || 0}</div>
+                    <div class="stat-label">Total Tickets</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.pendingValidation || 0}</div>
+                    <div class="stat-label">Pendientes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.todayValidated || 0}</div>
+                    <div class="stat-label">Hoy</div>
+                </div>
+            `;
+        }
+
+        function showTicketInfo(ticket) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML += `
+                <div class="ticket-info">
+                    <h3>Información del Ticket</h3>
+                    <p><strong>Número:</strong> ${ticket.ticketNumber}</p>
+                    <p><strong>Titular:</strong> ${ticket.holderName || 'No especificado'}</p>
+                    <p><strong>Email:</strong> ${ticket.holderEmail || 'No especificado'}</p>
+                    <p><strong>Tipo:</strong> ${ticket.ticketType || 'General'}</p>
+                    <p><strong>Precio:</strong> €${ticket.price}</p>
+                    <p><strong>Evento:</strong> ${ticket.eventName || 'TriskelGate 2025'}</p>
+                </div>
+            `;
+        }
+
+        function showValidationSection() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('validationSection').classList.remove('hidden');
+            document.getElementById('statsSection').classList.add('hidden');
+        }
+
+        function backToValidation() {
+            document.getElementById('statsSection').classList.add('hidden');
+            document.getElementById('validationSection').classList.remove('hidden');
+        }
+
+        function logout() {
+            localStorage.removeItem('hackbcn_token');
+            authToken = null;
+            currentUser = null;
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('validationSection').classList.add('hidden');
+            document.getElementById('statsSection').classList.add('hidden');
+            document.getElementById('result').classList.add('hidden');
+            showResult('Sesión cerrada', 'info');
+        }
+
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${type}`;
+            resultDiv.classList.remove('hidden');
+            
+            // Auto-hide después de 5 segundos para mensajes no críticos
+            if (type !== 'success') {
+                setTimeout(() => {
+                    resultDiv.classList.add('hidden');
+                }, 5000);
+            }
+        }
+
+        // Permitir validar con Enter
+        document.getElementById('qrCode').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                validateTicket();
+            }
+        });
+
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+
+        // =============================================================================
+        // PWA Y SERVICE WORKER
+        // =============================================================================
+
+        let deferredPrompt;
+        let isOnline = navigator.onLine;
+
+        // Registrar Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('/sw.js');
+                    console.log('Service Worker registrado:', registration);
+                    
+                    // Escuchar actualizaciones
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                showUpdateAvailable();
+                            }
+                        });
+                    });
+                } catch (error) {
+                    console.error('Error registrando Service Worker:', error);
+                }
+            });
+
+            // Escuchar mensajes del Service Worker
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                const { type, data } = event.data;
+                if (type === 'SYNC_COMPLETE') {
+                    showResult('Datos sincronizados', 'success');
+                }
+            });
+        }
+
+        // Detectar cuando la app se puede instalar
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallButton();
+        });
+
+        // Mostrar botón de instalación
+        function showInstallButton() {
+            const installBtn = document.createElement('button');
+            installBtn.textContent = '📱 Instalar App';
+            installBtn.className = 'btn install-btn';
+            installBtn.onclick = installApp;
+            installBtn.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: #4338ca;
+                color: white;
+                border: none;
+                padding: 12px 16px;
+                border-radius: 25px;
+                box-shadow: 0 4px 12px rgba(67, 56, 202, 0.3);
+                z-index: 1000;
+                font-size: 14px;
+                cursor: pointer;
+            `;
+            document.body.appendChild(installBtn);
+        }
+
+        // Instalar PWA
+        async function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log('Install outcome:', outcome);
+                deferredPrompt = null;
+                document.querySelector('.install-btn')?.remove();
+            }
+        }
+
+        // Mostrar que hay actualización disponible
+        function showUpdateAvailable() {
+            const updateDiv = document.createElement('div');
+            updateDiv.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; background: #4338ca; color: white; padding: 12px; text-align: center; z-index: 1001;">
+                    Nueva versión disponible 
+                    <button onclick="updateApp()" style="margin-left: 10px; background: white; color: #4338ca; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">
+                        Actualizar
+                    </button>
+                    <button onclick="this.parentElement.parentElement.remove()" style="margin-left: 5px; background: transparent; color: white; border: 1px solid white; padding: 4px 8px; border-radius: 4px; cursor: pointer;">
+                        Más tarde
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(updateDiv);
+        }
+
+        // Actualizar app
+        function updateApp() {
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+                window.location.reload();
+            }
+        }
+
+        // Estado de conexión
+        window.addEventListener('online', () => {
+            isOnline = true;
+            showResult('Conexión restaurada', 'success');
+        });
+
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            showResult('Sin conexión - Modo offline', 'warning');
+        });
+
+        // =============================================================================
+        // LECTOR QR NATIVO
+        // =============================================================================
+
+        let qrScanner = null;
+        let stream = null;
+
+        // Inicializar lector QR
+        async function initQRScanner() {
+            const qrScannerSection = document.createElement('div');
+            qrScannerSection.id = 'qrScannerSection';
+            qrScannerSection.innerHTML = `
+                <div style="text-align: center; margin: 20px 0;">
+                    <button id="startScanBtn" class="btn" onclick="startQRScan()">📷 Escanear QR</button>
+                    <button id="stopScanBtn" class="btn" onclick="stopQRScan()" style="display: none; background: #dc2626;">⏹ Detener</button>
+                </div>
+                <div id="qrReaderContainer" style="display: none;">
+                    <video id="qrVideo" style="width: 100%; max-width: 300px; border-radius: 8px;" autoplay muted playsinline></video>
+                    <canvas id="qrCanvas" style="display: none;"></canvas>
+                    <div id="qrScannerStatus" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
+                </div>
+            `;
+            
+            const scannerDiv = document.querySelector('.scanner-section');
+            scannerDiv.appendChild(qrScannerSection);
+        }
+
+        // Comenzar escaneo QR
+        async function startQRScan() {
+            try {
+                const constraints = {
+                    video: {
+                        facingMode: 'environment', // Cámara trasera
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
+
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                const video = document.getElementById('qrVideo');
+                const container = document.getElementById('qrReaderContainer');
+                const startBtn = document.getElementById('startScanBtn');
+                const stopBtn = document.getElementById('stopScanBtn');
+                const status = document.getElementById('qrScannerStatus');
+
+                video.srcObject = stream;
+                container.style.display = 'block';
+                startBtn.style.display = 'none';
+                stopBtn.style.display = 'inline-block';
+                status.textContent = 'Apunta la cámara hacia el código QR';
+
+                // Comenzar detección
+                video.addEventListener('loadedmetadata', () => {
+                    scanQRCode();
+                });
+
+            } catch (error) {
+                console.error('Error accediendo a la cámara:', error);
+                showResult('Error: No se puede acceder a la cámara', 'error');
+            }
+        }
+
+        // Detener escaneo QR
+        function stopQRScan() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+
+            const container = document.getElementById('qrReaderContainer');
+            const startBtn = document.getElementById('startScanBtn');
+            const stopBtn = document.getElementById('stopScanBtn');
+
+            container.style.display = 'none';
+            startBtn.style.display = 'inline-block';
+            stopBtn.style.display = 'none';
+        }
+
+        // Escanear código QR del video
+        function scanQRCode() {
+            const video = document.getElementById('qrVideo');
+            const canvas = document.getElementById('qrCanvas');
+            const context = canvas.getContext('2d');
+            const status = document.getElementById('qrScannerStatus');
+
+            if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+                setTimeout(scanQRCode, 100);
+                return;
+            }
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            try {
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const qrCode = jsQR(imageData.data, imageData.width, imageData.height);
+
+                if (qrCode) {
+                    status.textContent = '✅ QR detectado';
+                    document.getElementById('qrCode').value = qrCode.data;
+                    stopQRScan();
+                    showResult('Código QR escaneado correctamente', 'success');
+                    
+                    // Auto-validar si ya está logueado
+                    if (authToken) {
+                        setTimeout(() => validateTicket(), 1000);
+                    }
+                } else {
+                    status.textContent = 'Buscando código QR...';
+                    setTimeout(scanQRCode, 100);
+                }
+            } catch (error) {
+                console.error('Error escaneando QR:', error);
+                status.textContent = 'Error escaneando - reintentando...';
+                setTimeout(scanQRCode, 100);
+            }
+        }
+
+        // =============================================================================
+        // FUNCIONALIDADES PWA ADICIONALES
+        // =============================================================================
+
+        // Share API
+        async function shareTicketInfo(ticketData) {
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'TriskelGate Ticket Info',
+                        text: `Ticket ${ticketData.code} - ${ticketData.holderName}`,
+                        url: window.location.href
+                    });
+                } catch (error) {
+                    console.log('Error sharing:', error);
+                }
+            }
+        }
+
+        // Vibration API para feedback
+        function vibrateFeedback(pattern = [200, 100, 200]) {
+            if (navigator.vibrate) {
+                navigator.vibrate(pattern);
+            }
+        }
+
+        // Notifications API
+        async function showNotification(title, options = {}) {
+            if ('Notification' in window && navigator.serviceWorker) {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    const registration = await navigator.serviceWorker.ready;
+                    registration.showNotification(title, {
+                        icon: '/icons/icon-192x192.png',
+                        badge: '/icons/icon-96x96.png',
+                        vibrate: [200, 100, 200],
+                        ...options
+                    });
+                }
+            }
+        }
+
+        // Wake Lock API para mantener pantalla activa durante escaneo
+        let wakeLock = null;
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake lock activado');
+                }
+            } catch (error) {
+                console.error('Error activando wake lock:', error);
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock) {
+                wakeLock.release();
+                wakeLock = null;
+                console.log('Wake lock liberado');
+            }
+        }
+
+        // Modificar funciones existentes para incluir funcionalidades PWA
+        const originalValidateTicket = validateTicket;
+        validateTicket = async function() {
+            await requestWakeLock();
+            const result = await originalValidateTicket();
+            
+            if (result && result.success) {
+                vibrateFeedback([100, 50, 100]);
+                await showNotification('Ticket Válido', {
+                    body: `${result.ticket.holderName} - ${result.ticket.ticketType}`,
+                    tag: 'ticket-validation'
+                });
+            } else {
+                vibrateFeedback([500]);
+            }
+            
+            releaseWakeLock();
+            return result;
+        };
+
+        // Inicializar funcionalidades cuando se carga la página
+        document.addEventListener('DOMContentLoaded', () => {
+            initQRScanner();
+            
+            // Mostrar estado de conexión inicial
+            if (!isOnline) {
+                showResult('Modo offline - Funcionalidad limitada', 'warning');
+            }
+        });
+
+        // =============================================================================
+        // LIBRERÍA JSQR (Incluida inline para funcionar offline)
+        // =============================================================================
+        
+        // Nota: En producción, incluirías jsQR desde CDN o como módulo
+        // Para esta demo, implementaremos una versión básica o cargaremos dinámicamente
+        
+        function loadJsQR() {
+            return new Promise((resolve, reject) => {
+                if (window.jsQR) {
+                    resolve();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+                script.onload = resolve;
+                script.onerror = () => {
+                    // Fallback: implementación básica
+                    window.jsQR = function(data, width, height) {
+                        // Implementación muy básica - en producción usar librería completa
+                        console.warn('jsQR no disponible - usando fallback básico');
+                        return null;
+                    };
+                    resolve();
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        // Cargar jsQR cuando se inicialice la página
+        loadJsQR().then(() => {
+            console.log('jsQR library cargada');
+        });
+
+        // Inicializar PWA al cargar la página
+        window.addEventListener('load', () => {
+            // Mostrar indicador de estado de conexión
+            updateConnectionStatus();
+            
+            // Inicializar funcionalidades PWA
+            if ('serviceWorker' in navigator) {
+                console.log('Soporte para Service Worker detectado');
+            }
+            
+            if ('mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices) {
+                console.log('Soporte para cámara detectado');
+            }
+            
+            // Auto-login si hay token guardado
+            checkAutoLogin();
+        });
+
+        // Verificar auto-login
+        function checkAutoLogin() {
+            const savedToken = localStorage.getItem('hackbcn_token');
+            const savedUser = localStorage.getItem('hackbcn_user');
+            
+            if (savedToken && savedUser) {
+                try {
+                    authToken = savedToken;
+                    currentUser = JSON.parse(savedUser);
+                    
+                    // Verificar si el token sigue siendo válido
+                    fetch('/api/stats', {
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            // Token válido, mostrar interfaz
+                            document.getElementById('loginSection').classList.add('hidden');
+                            document.getElementById('validationSection').classList.remove('hidden');
+                            document.getElementById('statsSection').classList.remove('hidden');
+                            showResult('Sesión restaurada automáticamente', 'success');
+                            loadStats();
+                        } else {
+                            // Token inválido, limpiar y mostrar login
+                            localStorage.removeItem('hackbcn_token');
+                            localStorage.removeItem('hackbcn_user');
+                            authToken = null;
+                            currentUser = null;
+                        }
+                    })
+                    .catch(() => {
+                        // Error de red, mantener token pero no auto-login
+                        console.log('No se pudo verificar el token (sin conexión)');
+                    });
+                } catch (error) {
+                    console.error('Error en auto-login:', error);
+                    localStorage.removeItem('hackbcn_token');
+                    localStorage.removeItem('hackbcn_user');
+                }
+            }
+        }
+
+        // Actualizar estado de conexión
+        function updateConnectionStatus() {
+            const statusIndicator = document.createElement('div');
+            statusIndicator.id = 'connectionStatus';
+            statusIndicator.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 8px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: bold;
+                z-index: 1000;
+                transition: all 0.3s ease;
+            `;
+            
+            if (isOnline) {
+                statusIndicator.textContent = '🟢 Online';
+                statusIndicator.style.background = '#10b981';
+                statusIndicator.style.color = 'white';
+            } else {
+                statusIndicator.textContent = '🔴 Offline';
+                statusIndicator.style.background = '#ef4444';
+                statusIndicator.style.color = 'white';
+            }
+            
+            // Remover indicador anterior si existe
+            const existingIndicator = document.getElementById('connectionStatus');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+            
+            document.body.appendChild(statusIndicator);
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: payment-platform/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: ./payment-platform
+      run: npm ci
+      
+    - name: Run linting
+      working-directory: ./payment-platform
+      run: npm run lint
+      
+    - name: Run unit tests
+      working-directory: ./payment-platform
+      run: npm run test:unit
+      
+    - name: Run integration tests
+      working-directory: ./payment-platform
+      run: npm run test:integration
+      
+    - name: Generate coverage report
+      working-directory: ./payment-platform
+      run: npm run test:coverage
+      
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./payment-platform/coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        
+  security:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: payment-platform/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: ./payment-platform
+      run: npm ci
+      
+    - name: Run security audit
+      working-directory: ./payment-platform
+      run: npm audit --audit-level=moderate
+      
+    - name: Run dependency check
+      working-directory: ./payment-platform
+      run: npx audit-ci --moderate
+      
+  build:
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: payment-platform/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: ./payment-platform
+      run: npm ci
+      
+    - name: Build application
+      working-directory: ./payment-platform
+      run: npm run build
+      
+    - name: Create deployment artifact
+      run: |
+        tar -czf payment-platform.tar.gz payment-platform/
+        
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: payment-platform-${{ github.sha }}
+        path: payment-platform.tar.gz
+        retention-days: 30
+        
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    
+    steps:
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        echo "This would deploy to staging server"
+        
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production environment..."
+        echo "This would deploy to production server"
