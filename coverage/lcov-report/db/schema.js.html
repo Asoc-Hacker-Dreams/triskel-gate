@@ -335,141 +335,141 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { sqliteTable, text, real, integer, index } from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { sqliteTable, text, real, integer, index } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
 &nbsp;
 // Tabla de eventos
-export const events = <span class="cstat-no" title="statement not covered" >sqliteTable("events", {</span>
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
-  description: text("description"),
-  location: text("location").notNull(),
-  startDate: text("start_date").notNull(),
-  endDate: text("end_date").notNull(),
-  maxTickets: integer("max_tickets").default(1000),
-  status: text("status").default("active"), // active, paused, cancelled, completed
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
-  updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`)
+export const events = <span class="cstat-no" title="statement not covered" >sqliteTable('events', {</span>
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  slug: text('slug').notNull().unique(),
+  description: text('description'),
+  location: text('location').notNull(),
+  startDate: text('start_date').notNull(),
+  endDate: text('end_date').notNull(),
+  maxTickets: integer('max_tickets').default(1000),
+  status: text('status').default('active'), // active, paused, cancelled, completed
+  createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+  updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`)
 });
 &nbsp;
 // Tabla de tipos de tickets
-export const ticketTypes = <span class="cstat-no" title="statement not covered" >sqliteTable("ticket_types", {</span>
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  eventId: integer("event_id").notNull().references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >events.id)</span>,
-  name: text("name").notNull(),
-  description: text("description"),
-  price: real("price").notNull(),
-  stripeProductId: text("stripe_product_id"),
-  stripePriceId: text("stripe_price_id"),
-  maxQuantity: integer("max_quantity").default(100),
-  saleStartDate: text("sale_start_date").notNull(),
-  saleEndDate: text("sale_end_date").notNull(),
-  isActive: integer("is_active", { mode: "boolean" }).default(true),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`)
+export const ticketTypes = <span class="cstat-no" title="statement not covered" >sqliteTable('ticket_types', {</span>
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  eventId: integer('event_id').notNull().references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >events.id)</span>,
+  name: text('name').notNull(),
+  description: text('description'),
+  price: real('price').notNull(),
+  stripeProductId: text('stripe_product_id'),
+  stripePriceId: text('stripe_price_id'),
+  maxQuantity: integer('max_quantity').default(100),
+  saleStartDate: text('sale_start_date').notNull(),
+  saleEndDate: text('sale_end_date').notNull(),
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+  createdAt: text('created_at').notNull().default(sql`(current_timestamp)`)
 });
 &nbsp;
 // Tabla de órdenes
-export const orders = <span class="cstat-no" title="statement not covered" >sqliteTable("orders", {</span>
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  orderNumber: text("order_number").notNull().unique(),
-  eventId: integer("event_id").notNull().references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >events.id)</span>,
-  customerEmail: text("customer_email").notNull(),
-  customerName: text("customer_name").notNull(),
-  customerPhone: text("customer_phone"),
-  totalAmount: real("total_amount").notNull(),
-  currency: text("currency").default("EUR"),
-  status: text("status").default("pending"), // pending, completed, cancelled, refunded
-  stripeSessionId: text("stripe_session_id"),
-  stripePaymentIntentId: text("stripe_payment_intent_id"),
-  notes: text("notes"),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
-  updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`)
+export const orders = <span class="cstat-no" title="statement not covered" >sqliteTable('orders', {</span>
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  orderNumber: text('order_number').notNull().unique(),
+  eventId: integer('event_id').notNull().references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >events.id)</span>,
+  customerEmail: text('customer_email').notNull(),
+  customerName: text('customer_name').notNull(),
+  customerPhone: text('customer_phone'),
+  totalAmount: real('total_amount').notNull(),
+  currency: text('currency').default('EUR'),
+  status: text('status').default('pending'), // pending, completed, cancelled, refunded
+  stripeSessionId: text('stripe_session_id'),
+  stripePaymentIntentId: text('stripe_payment_intent_id'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+  updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`)
 }, <span class="fstat-no" title="function not covered" >(t</span>able) =&gt; (<span class="cstat-no" title="statement not covered" >{</span>
-  emailIdx: index("orders_email_idx").on(table.customerEmail),
-  statusIdx: index("orders_status_idx").on(table.status),
-  orderNumberIdx: index("orders_order_number_idx").on(table.orderNumber)
+  emailIdx: index('orders_email_idx').on(table.customerEmail),
+  statusIdx: index('orders_status_idx').on(table.status),
+  orderNumberIdx: index('orders_order_number_idx').on(table.orderNumber)
 }));
 &nbsp;
 // Tabla de tickets mejorada
-export const tickets = <span class="cstat-no" title="statement not covered" >sqliteTable("tickets", {</span>
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  uuid: text("uuid").notNull().unique(),
-  orderId: integer("order_id").notNull().references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >orders.id)</span>,
-  ticketTypeId: integer("ticket_type_id").notNull().references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >ticketTypes.id)</span>,
-  eventId: integer("event_id").notNull().references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >events.id)</span>,
-  qrCode: text("qr_code").notNull().unique(),
-  ticketNumber: text("ticket_number").notNull().unique(),
-  holderName: text("holder_name"),
-  holderEmail: text("holder_email"),
-  price: real("price").notNull(),
-  isUsed: integer("is_used", { mode: "boolean" }).default(false),
-  usedAt: text("used_at"),
-  usedBy: text("used_by"), // staff member who validated
-  checkInLocation: text("checkin_location"),
-  notes: text("notes"),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
-  updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`)
+export const tickets = <span class="cstat-no" title="statement not covered" >sqliteTable('tickets', {</span>
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  uuid: text('uuid').notNull().unique(),
+  orderId: integer('order_id').notNull().references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >orders.id)</span>,
+  ticketTypeId: integer('ticket_type_id').notNull().references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >ticketTypes.id)</span>,
+  eventId: integer('event_id').notNull().references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >events.id)</span>,
+  qrCode: text('qr_code').notNull().unique(),
+  ticketNumber: text('ticket_number').notNull().unique(),
+  holderName: text('holder_name'),
+  holderEmail: text('holder_email'),
+  price: real('price').notNull(),
+  isUsed: integer('is_used', { mode: 'boolean' }).default(false),
+  usedAt: text('used_at'),
+  usedBy: text('used_by'), // staff member who validated
+  checkInLocation: text('checkin_location'),
+  notes: text('notes'),
+  createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+  updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`)
 }, <span class="fstat-no" title="function not covered" >(t</span>able) =&gt; (<span class="cstat-no" title="statement not covered" >{</span>
-  uuidIdx: index("tickets_uuid_idx").on(table.uuid),
-  qrCodeIdx: index("tickets_qr_code_idx").on(table.qrCode),
-  ticketNumberIdx: index("tickets_ticket_number_idx").on(table.ticketNumber),
-  orderIdx: index("tickets_order_idx").on(table.orderId),
-  usedIdx: index("tickets_used_idx").on(table.isUsed),
-  eventIdx: index("tickets_event_idx").on(table.eventId)
+  uuidIdx: index('tickets_uuid_idx').on(table.uuid),
+  qrCodeIdx: index('tickets_qr_code_idx').on(table.qrCode),
+  ticketNumberIdx: index('tickets_ticket_number_idx').on(table.ticketNumber),
+  orderIdx: index('tickets_order_idx').on(table.orderId),
+  usedIdx: index('tickets_used_idx').on(table.isUsed),
+  eventIdx: index('tickets_event_idx').on(table.eventId)
 }));
 &nbsp;
 // Tabla de staff/administradores
-export const staff = <span class="cstat-no" title="statement not covered" >sqliteTable("staff", {</span>
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  email: text("email").notNull().unique(),
-  name: text("name").notNull(),
-  passwordHash: text("password_hash").notNull(),
-  role: text("role").default("staff"), // admin, staff, validator
-  permissions: text("permissions"), // JSON string
-  isActive: integer("is_active", { mode: "boolean" }).default(true),
-  lastLoginAt: text("last_login_at"),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
-  updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`)
+export const staff = <span class="cstat-no" title="statement not covered" >sqliteTable('staff', {</span>
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  email: text('email').notNull().unique(),
+  name: text('name').notNull(),
+  passwordHash: text('password_hash').notNull(),
+  role: text('role').default('staff'), // admin, staff, validator
+  permissions: text('permissions'), // JSON string
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+  lastLoginAt: text('last_login_at'),
+  createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+  updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`)
 });
 &nbsp;
 // Tabla de logs de validación
-export const validationLogs = <span class="cstat-no" title="statement not covered" >sqliteTable("validation_logs", {</span>
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  ticketId: integer("ticket_id").notNull().references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >tickets.id)</span>,
-  staffId: integer("staff_id").references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >staff.id)</span>,
-  action: text("action").notNull(), // validate, invalidate, check
-  location: text("location"),
-  deviceInfo: text("device_info"),
-  ipAddress: text("ip_address"),
-  success: integer("success", { mode: "boolean" }).notNull(),
-  errorMessage: text("error_message"),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`)
+export const validationLogs = <span class="cstat-no" title="statement not covered" >sqliteTable('validation_logs', {</span>
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  ticketId: integer('ticket_id').notNull().references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >tickets.id)</span>,
+  staffId: integer('staff_id').references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >staff.id)</span>,
+  action: text('action').notNull(), // validate, invalidate, check
+  location: text('location'),
+  deviceInfo: text('device_info'),
+  ipAddress: text('ip_address'),
+  success: integer('success', { mode: 'boolean' }).notNull(),
+  errorMessage: text('error_message'),
+  createdAt: text('created_at').notNull().default(sql`(current_timestamp)`)
 });
 &nbsp;
 // Tabla de configuraciones
-export const settings = <span class="cstat-no" title="statement not covered" >sqliteTable("settings", {</span>
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  key: text("key").notNull().unique(),
-  value: text("value").notNull(),
-  category: text("category").default("general"),
-  description: text("description"),
-  isPublic: integer("is_public", { mode: "boolean" }).default(false),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
-  updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`)
+export const settings = <span class="cstat-no" title="statement not covered" >sqliteTable('settings', {</span>
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  key: text('key').notNull().unique(),
+  value: text('value').notNull(),
+  category: text('category').default('general'),
+  description: text('description'),
+  isPublic: integer('is_public', { mode: 'boolean' }).default(false),
+  createdAt: text('created_at').notNull().default(sql`(current_timestamp)`),
+  updatedAt: text('updated_at').notNull().default(sql`(current_timestamp)`)
 });
 &nbsp;
 // Tabla de estadísticas de ventas
-export const salesStats = <span class="cstat-no" title="statement not covered" >sqliteTable("sales_stats", {</span>
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  eventId: integer("event_id").notNull().references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >events.id)</span>,
-  date: text("date").notNull(), // YYYY-MM-DD
-  ticketsSold: integer("tickets_sold").default(0),
-  revenue: real("revenue").default(0),
-  refunds: real("refunds").default(0),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`)
+export const salesStats = <span class="cstat-no" title="statement not covered" >sqliteTable('sales_stats', {</span>
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  eventId: integer('event_id').notNull().references(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >events.id)</span>,
+  date: text('date').notNull(), // YYYY-MM-DD
+  ticketsSold: integer('tickets_sold').default(0),
+  revenue: real('revenue').default(0),
+  refunds: real('refunds').default(0),
+  createdAt: text('created_at').notNull().default(sql`(current_timestamp)`)
 }, <span class="fstat-no" title="function not covered" >(t</span>able) =&gt; (<span class="cstat-no" title="statement not covered" >{</span>
-  eventDateIdx: index("sales_stats_event_date_idx").on(table.eventId, table.date)
+  eventDateIdx: index('sales_stats_event_date_idx').on(table.eventId, table.date)
 }));
 &nbsp;</pre></td></tr></table></pre>
 
@@ -478,7 +478,7 @@ export const salesStats = <span class="cstat-no" title="statement not covered" >
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-06-09T22:46:35.205Z
+                at 2025-06-10T09:59:03.544Z
             </div>
         <script src="../prettify.js"></script>
         <script>

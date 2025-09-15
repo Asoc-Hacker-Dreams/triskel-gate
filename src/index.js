@@ -26,7 +26,7 @@ const logger = winston.createLogger({
     new winston.transports.Console({
       format: winston.format.simple()
     })
-  ],
+  ]
 });
 
 // Crear aplicación Express
@@ -37,11 +37,11 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
+      defaultSrc: ['\'self\''],
+      styleSrc: ['\'self\'', '\'unsafe-inline\''],
+      scriptSrc: ['\'self\''],
+      imgSrc: ['\'self\'', 'data:', 'https:']
+    }
   },
   hsts: {
     maxAge: 31536000,
@@ -58,7 +58,7 @@ const limiter = rateLimit({
     error: 'Demasiadas solicitudes desde esta IP, intenta de nuevo más tarde.'
   },
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: false
 });
 
 app.use(limiter);
@@ -115,7 +115,7 @@ app.get('/health', (req, res) => {
     // Verificar conectividad de base de datos
     const dbStatus = 'connected'; // En una implementación real, verificarías la DB
     healthCheck.database = dbStatus;
-    
+
     res.status(200).json(healthCheck);
   } catch (error) {
     healthCheck.message = 'ERROR';
@@ -138,7 +138,7 @@ app.get('/ready', (req, res) => {
   };
 
   const allChecksPass = Object.values(readinessCheck.checks).every(check => check === 'ok');
-  
+
   res.status(allChecksPass ? 200 : 503).json(readinessCheck);
 });
 
@@ -189,7 +189,7 @@ app.use('*', (req, res) => {
 });
 
 // Middleware de manejo de errores global
-app.use((error, req, res, next) => {
+app.use((error, req, res, _next) => {
   logger.error('Error no manejado:', {
     error: error.message,
     stack: error.stack,

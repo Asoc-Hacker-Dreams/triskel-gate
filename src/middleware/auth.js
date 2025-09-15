@@ -5,14 +5,14 @@ import { staff } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 
 export class AuthService {
-  
+
   /**
    * Middleware de autenticación JWT
    */
   static async authenticate(req, res, next) {
     try {
       const authHeader = req.headers.authorization;
-      
+
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({
           success: false,
@@ -22,9 +22,9 @@ export class AuthService {
       }
 
       const token = authHeader.substring(7); // Remover "Bearer "
-      
+
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
+
       // Verificar que el usuario todavía existe y está activo
       const user = await db
         .select()
@@ -102,7 +102,7 @@ export class AuthService {
       }
 
       const userPermissions = req.user.permissions || [];
-      
+
       if (!userPermissions.includes(permission) && req.user.role !== 'admin') {
         return res.status(403).json({
           success: false,

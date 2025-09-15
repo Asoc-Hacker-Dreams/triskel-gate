@@ -4,10 +4,12 @@
 
 Una plataforma completa de gestión de eventos con validación QR en tiempo real, procesamiento seguro de pagos, PWA con soporte offline y panel administrativo avanzado.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen.svg)
+![OSDO](https://img.shields.io/badge/OSDO-Compliant-green.svg)
+![Security](https://img.shields.io/badge/Security-SAST%20%7C%20SCA%20%7C%20Container-blue.svg)
 
 ## 🚀 Características Principales
 
@@ -358,6 +360,34 @@ npm run format           # Prettier
 npm run health           # Health check
 npm run validate         # Lint + test
 npm run test:tickets     # Generar tickets de prueba
+
+# Azure DevOps y Deploy
+npm run azure:setup      # Configurar infraestructura Azure completa
+npm run azure:cleanup    # Limpiar infraestructura Azure (dry-run)
+npm run azure:cleanup:delete # Eliminar recursos Azure con confirmación
+npm run build:docker     # Build imagen Docker desarrollo
+npm run build:docker:prod # Build imagen Docker producción
+npm run azure:deploy:staging   # Info deploy staging
+npm run azure:deploy:prod     # Info deploy producción
+
+# OSDO Compliance (Open Source Development & Operations)
+npm run osdo:all         # Ejecutar análisis completo OSDO
+npm run osdo:sast        # Static Application Security Testing
+npm run osdo:sca         # Software Composition Analysis  
+npm run osdo:container   # Container Security Scanning (Proceso 3 pasos)
+npm run osdo:buildah     # Build con Buildah (reemplazo Docker)
+npm run osdo:gates       # Evaluar Quality Gates
+npm run osdo:report      # Generar reporte consolidado
+npm run osdo:status      # Ver estado OSDO actual
+npm run osdo:clean       # Limpiar resultados OSDO
+npm run osdo:test:container # Test del proceso OSDO de containers
+
+# Security Tools Individuales
+npm run security:sast    # Análisis estático de seguridad
+npm run security:sca     # Análisis de composición software
+npm run security:container # Proceso OSDO 3 pasos: Dockerfile→Build→Registry
+npm run buildah:build:dev   # Build imagen desarrollo con Buildah
+npm run buildah:build:prod  # Build imagen producción con Buildah
 ```
 
 ## 📋 Testing de la Plataforma
@@ -410,9 +440,100 @@ Tipos: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
 ## 🚦 CI/CD
 
-### GitHub Actions
+### Azure DevOps Pipeline
 
-Pipeline automático que incluye:
+Pipeline automático configurado para Azure DevOps que incluye:
+
+#### 🔄 **Stages del Pipeline**
+
+1. **Build & Test Stage**
+   - Lint del código con ESLint
+   - Pruebas unitarias y de integración
+   - Reporte de cobertura de código
+   - Análisis de dependencias
+   - Validación de configuración Docker
+
+2. **Security Analysis Stage**
+   - Audit de vulnerabilidades con npm audit
+   - Análisis estático de código
+   - Escaneo básico de secretos
+   - Validación de dependencias
+
+3. **Docker Build Stage**
+   - Build de imágenes Docker para staging/production
+   - Push a Azure Container Registry
+   - Escaneo de seguridad de imágenes con Trivy
+   - Tagging automático por ambiente
+
+4. **Deployment Stage**
+   - **Staging**: Deploy automático desde rama `develop`
+   - **Production**: Deploy desde rama `main` con aprobación manual
+   - Blue-Green deployment con slots
+   - Health checks post-deployment
+
+5. **Post-Deployment Tests**
+   - Smoke tests automáticos
+   - Tests de performance básicos
+   - Validación de endpoints críticos
+
+#### 🏗️ **Infraestructura Azure**
+
+```bash
+# Configurar infraestructura completa
+npm run azure:setup
+
+# O manualmente:
+./scripts/setup-azure-infrastructure.sh
+```
+
+**Recursos creados automáticamente:**
+- **Resource Group**: `triskelgate-rg`
+- **Container Registry**: `triskelgate.azurecr.io`
+- **App Service Plan**: Linux P1V2
+- **Staging App**: `triskelgate-platform-staging`
+- **Production App**: `triskelgate-platform-prod` (con slot staging)
+- **Application Insights**: Monitoreo y métricas
+- **Log Analytics**: Logging centralizado
+
+#### ⚙️ **Configuración de Azure DevOps**
+
+1. **Service Connections**:
+   - `TriskelGate-Azure-Connection` (Azure Resource Manager)
+   - `TriskelGateACR` (Docker Registry)
+   - `TriskelGateSlack` (Notificaciones - opcional)
+
+2. **Variable Groups**:
+   - `TriskelGate-Shared`: Variables comunes
+   - `TriskelGate-Staging`: Configuración de staging
+   - `TriskelGate-Production`: Configuración de producción
+
+3. **Environments**:
+   - `TriskelGate-Staging`: Deploy automático
+   - `TriskelGate-Production`: Requiere aprobación manual
+
+4. **Branch Policies**:
+   - **Main**: Requiere 2 reviewers + build validation
+   - **Develop**: Requiere 1 reviewer + build validation
+
+#### 🎯 **Triggers y Estrategia**
+
+**Continuous Integration:**
+- ✅ Push a cualquier rama
+- ✅ Pull requests a `main` o `develop`
+- ✅ Excluye cambios solo de documentación
+
+**Continuous Deployment:**
+- 🚀 **Staging**: Automático desde `develop`
+- 🚀 **Production**: Automático desde `main` (con aprobación)
+- 🔄 **Blue-Green**: Deployment sin downtime
+
+**Environments:**
+- 📊 **Staging**: `https://triskelgate-platform-staging.azurewebsites.net`
+- 🏭 **Production**: `https://triskelgate-platform.azurewebsites.net`
+
+### GitHub Actions (Alternativo)
+
+Pipeline también disponible para GitHub Actions:
 
 1. **Test Stage**
    - Lint del código
@@ -438,14 +559,19 @@ Pipeline automático que incluye:
 |----------------|------------------|------------|
 | Validación QR en tiempo real | ✅ | ⚠️ Limited |
 | PWA con soporte offline | ✅ | ❌ |
+| Compatible con AgoraPass | ✅ | ❌ |
 | API RESTful completa | ✅ | ⚠️ Limited |
 | Código abierto | ✅ | ❌ |
 | Personalización total | ✅ | ❌ |
-| Sin comisiones por transacción | ✅ | ❌ |
 | Búsqueda avanzada | ✅ | ⚠️ Basic |
 | Sistema de roles granular | ✅ | ⚠️ Limited |
 | Documentación completa | ✅ | ⚠️ Limited |
 | Tests automatizados | ✅ | ❌ |
+| **CI/CD Azure DevOps** | ✅ | ❌ |
+| **Blue-Green Deployment** | ✅ | ❌ |
+| **Auto-scaling en Azure** | ✅ | ⚠️ Limited |
+| **Monitoreo con Application Insights** | ✅ | ⚠️ Basic |
+| **Container orchestration** | ✅ | ❌ |
 
 ## 🎯 Casos de Uso
 
@@ -490,14 +616,44 @@ MIT License - ver [LICENSE](LICENSE) para detalles.
 - **Jest** - Framework de testing
 - **Swagger** - Documentación API
 - **PWA Technologies** - Progressive Web App
+- **Azure DevOps** - CI/CD y deployment automation
+- **GitHub Actions** - Alternativa de CI/CD
+
+## 📚 Documentación Adicional
+
+### 🔧 Configuración y Setup
+- 📖 [Guía de configuración Azure DevOps](./docs/azure-devops-setup.md)
+- 🔄 [Comparación CI/CD: Azure DevOps vs GitHub Actions](./docs/ci-cd-comparison.md)
+- 🛡️ [OSDO Compliance Implementation](./docs/OSDO-COMPLIANCE.md)
+- 🗑️ [Guía de limpieza de infraestructura Azure](./scripts/cleanup-azure-infrastructure.sh)
+- 🐳 [Dockerfile y Docker Compose](./docker-compose.yml)
+- ⚙️ [Configuración de Jest](./jest.config.json)
+
+### 🚀 Scripts y Automation
+- 🏗️ [Script de configuración Azure](./scripts/setup-azure-infrastructure.sh)
+- 🧹 [Script de limpieza Azure](./scripts/cleanup-azure-infrastructure.sh)
+- 🧪 [Script de testing completo](./scripts/test-platform.sh)
+- 📊 [Generación de tickets de prueba](./scripts/create-test-tickets.js)
+
+### 📊 CI/CD Pipelines
+- 🔵 [Azure DevOps Pipeline](./azure-pipelines.yml)
+- 🟢 [GitHub Actions Workflow](./.github/workflows/ci-cd.yml)
+
+### 🛡️ OSDO Compliance
+- 🎯 [Herramienta Master OSDO](./.osdo/osdo.sh)
+- 🔒 [SAST Tool](./.osdo/tools/sast.sh)
+- 📦 [SCA Tool](./.osdo/tools/sca.sh)
+- 🐳 [Container Security](./.osdo/tools/container-scan.sh)
+- 🔨 [Buildah Builder](./.osdo/tools/buildah-builder.sh)
+- ⚙️ [Configuración OSDO](./.osdo/config.yml)
 
 ---
 
 <div align="center">
 
-**🎉 ¡Plataforma superior a Eventbrite lista para TriskelGate 2025! 🎉**
+**🎉 ¡Plataforma de pagos TriskelGate! 🎉**
 
-![TriskelGate](https://img.shields.io/badge/TriskelGate-2025-blue.svg)
+![TriskelGate](https://img.shields.io/badge/TriskelGate-blue.svg)
 ![Status](https://img.shields.io/badge/status-production%20ready-green.svg)
 
 </div>

@@ -1,0 +1,18 @@
+{
+    "timestamp": "2025-06-10T11:56:39Z",
+    "action": "dry-run",
+    "subscription_id": "7728a245-9061-46f2-a753-10eb13d305e5",
+    "resource_group": "triskelgate-rg",
+    "location": "eastus2",
+    "resources": {
+        "container_registry": "triskelgate.azurecr.io",
+        "app_service_plan": "triskelgate-plan",
+        "staging_app": "triskelgate-platform-staging.azurewebsites.net",
+        "production_app": "triskelgate-platform-prod.azurewebsites.net",
+        "application_insights": "triskelgate-insights",
+        "log_analytics": "triskelgate-logs"
+    },
+    "status": "simulated",
+    "operator": "specter",
+    "script_version": "1.0.0"
+}

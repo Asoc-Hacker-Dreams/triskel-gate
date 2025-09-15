@@ -1,10 +1,9 @@
 import { db } from '../db/connection.js';
-import { tickets, events, ticketTypes, validationLogs, staff } from '../db/schema.js';
+import { tickets, events, ticketTypes, validationLogs } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
-import crypto from 'crypto';
 
 export class TicketValidationService {
-  
+
   /**
    * Valida un ticket por código QR
    */
@@ -131,8 +130,8 @@ export class TicketValidationService {
         qrCode,
         eventId,
         isUsed,
-        startDate,
-        endDate,
+        // startDate,
+        // endDate,
         limit = 50,
         offset = 0
       } = criteria;
@@ -236,7 +235,7 @@ export class TicketValidationService {
       }
 
       const results = await query;
-      
+
       const stats = {
         total: results.length,
         validated: results.filter(r => r.used).length,
