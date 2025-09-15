@@ -1105,7 +1105,7 @@ import PDFDocument from 'pdfkit';
 export class PaymentService {
 <span class="fstat-no" title="function not covered" >  co</span>nstructor() {
 <span class="cstat-no" title="statement not covered" >    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {</span>
-      apiVersion: '2020-08-27',
+      apiVersion: '2020-08-27'
     });
   }
 &nbsp;
@@ -1212,12 +1212,12 @@ export class PaymentService {
               product_data: {
                 name: `${event.name} - ${ticketType.name}`,
                 description: ticketType.description,
-                images: metadata.images || [],
+                images: metadata.images || []
               },
-              unit_amount: Math.round(ticketType.price * 100), // Convertir a centavos
+              unit_amount: Math.round(ticketType.price * 100) // Convertir a centavos
             },
-            quantity: quantity,
-          },
+            quantity: quantity
+          }
         ],
         mode: 'payment',
         customer_email: customerEmail,
@@ -1231,7 +1231,7 @@ export class PaymentService {
           quantity: quantity.toString(),
           ...metadata
         },
-        expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutos
+        expires_at: Math.floor(Date.now() / 1000) + (30 * 60) // 30 minutos
       });
 &nbsp;
       // Actualizar orden con ID de sesión de Stripe
@@ -1303,7 +1303,7 @@ export class PaymentService {
         );
       }
 &nbsp;
-      const ticketResults = <span class="cstat-no" title="statement not covered" >await Promise.all(ticketPromises);</span>
+<span class="cstat-no" title="statement not covered" >      await Promise.all(ticketPromises);</span>
 &nbsp;
       // Actualizar estadísticas de ventas
 <span class="cstat-no" title="statement not covered" >      await this.updateSalesStats(eventId, quantity, order[0].totalAmount);</span>
@@ -1361,12 +1361,12 @@ export class PaymentService {
   /**
    * Genera PDF con los tickets
    */
-<span class="fstat-no" title="function not covered" >  as</span>ync generateTicketsPDF(tickets, eventData, orderData) {
+<span class="fstat-no" title="function not covered" >  as</span>ync generateTicketsPDF(tickets, eventData, _orderData) {
 <span class="cstat-no" title="statement not covered" >    return new Promise(<span class="fstat-no" title="function not covered" >(r</span>esolve, reject) =&gt; {</span>
       const doc = <span class="cstat-no" title="statement not covered" >new PDFDocument({</span>
         size: 'A4',
         margin: 50,
-        autoFirstPage: false,
+        autoFirstPage: false
       });
 &nbsp;
       const buffers = <span class="cstat-no" title="statement not covered" >[];</span>
@@ -1384,7 +1384,7 @@ export class PaymentService {
             const qrCodeBuffer = <span class="cstat-no" title="statement not covered" >await QRCode.toBuffer(ticket.qrCode, {</span>
               errorCorrectionLevel: 'H',
               margin: 1,
-              width: 180,
+              width: 180
             });
 &nbsp;
             const ticketWidth = <span class="cstat-no" title="statement not covered" >400;</span>
@@ -1409,14 +1409,14 @@ export class PaymentService {
 <span class="cstat-no" title="statement not covered" >            doc.fontSize(32).fillColor('#000000').font('Helvetica-Bold');</span>
 <span class="cstat-no" title="statement not covered" >            doc.text(eventData.name, ticketX, ticketY + 140, {</span>
               align: 'center',
-              width: ticketWidth,
+              width: ticketWidth
             });
 &nbsp;
             // Información del evento
 <span class="cstat-no" title="statement not covered" >            doc.fontSize(16).fillColor('#000000');</span>
 <span class="cstat-no" title="statement not covered" >            doc.text('Fecha:', ticketX, ticketY + 200);</span>
 <span class="cstat-no" title="statement not covered" >            doc.text(new Date(eventData.startDate).toLocaleDateString('es-ES'), ticketX, ticketY + 220);</span>
-            
+&nbsp;
 <span class="cstat-no" title="statement not covered" >            doc.text('Ubicación:', ticketX + 200, ticketY + 200);</span>
 <span class="cstat-no" title="statement not covered" >            doc.text(eventData.location, ticketX + 200, ticketY + 220);</span>
 &nbsp;
@@ -1432,13 +1432,13 @@ export class PaymentService {
               .fontSize(18)
               .text(`${ticket.price}€`, ticketX + 150, ticketY + 365, {
                 align: 'center',
-                width: 100,
+                width: 100
               });
 &nbsp;
             // QR Code
 <span class="cstat-no" title="statement not covered" >            doc.image(qrCodeBuffer, ticketX + (ticketWidth - 180) / 2, ticketY + 420, {</span>
               width: 180,
-              height: 180,
+              height: 180
             });
 &nbsp;
             // Información adicional
@@ -1463,7 +1463,7 @@ export class PaymentService {
    */
 <span class="fstat-no" title="function not covered" >  as</span>ync updateSalesStats(eventId, quantity, revenue) {
     const today = <span class="cstat-no" title="statement not covered" >new Date().toISOString().split('T')[0];</span>
-    
+&nbsp;
 <span class="cstat-no" title="statement not covered" >    try {</span>
       // Verificar si ya existe un registro para hoy
       const existingStats = <span class="cstat-no" title="statement not covered" >await db</span>
@@ -1615,7 +1615,7 @@ export default new PaymentService();
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-06-09T22:46:35.245Z
+                at 2025-06-10T09:59:03.567Z
             </div>
         <script src="../prettify.js"></script>
         <script>

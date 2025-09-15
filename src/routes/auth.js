@@ -16,7 +16,7 @@ const authLimiter = rateLimit({
     message: 'Demasiados intentos de login. Intenta de nuevo en 15 minutos.'
   },
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: false
 });
 
 // Middleware de validación de errores
@@ -44,15 +44,15 @@ router.post('/login',
       .withMessage('Email válido requerido'),
     body('password')
       .isLength({ min: 6 })
-      .withMessage('Contraseña debe tener al menos 6 caracteres'),
+      .withMessage('Contraseña debe tener al menos 6 caracteres')
   ],
   handleValidationErrors,
   async (req, res) => {
     try {
       const { email, password } = req.body;
-      
+
       const result = await AuthService.login(email, password);
-      
+
       const statusCode = result.success ? 200 : 401;
       res.status(statusCode).json(result);
 
@@ -75,7 +75,7 @@ router.get('/me',
   async (req, res) => {
     try {
       const result = await AuthService.getCurrentUser(req.user.id);
-      
+
       if (result.success) {
         res.json({
           success: true,
@@ -124,7 +124,7 @@ router.put('/change-password',
       const userId = req.user.id;
 
       const result = await AuthService.changePassword(userId, currentPassword, newPassword);
-      
+
       const statusCode = result.success ? 200 : 400;
       res.status(statusCode).json(result);
 

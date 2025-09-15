@@ -1,0 +1,86 @@
+# OSDO (Open SecDevOps) Configuration
+# Configuración mínima para compliance con OSDO
+
+version: '1.0'
+project:
+  name: 'TriskelGate Payment Platform'
+  version: '2.0.0'
+  description: 'Plataforma de pagos y tickets para eventos'
+  license: 'MIT'
+  repository: 'https://github.com/hackerdreams/triskel-gate'
+
+# Configuración de herramientas de seguridad
+security:
+  # Static Application Security Testing (SAST)
+  sast:
+    enabled: true
+    tools:
+      - eslint-security
+      - semgrep
+    severity_threshold: 'medium'
+    
+  # Software Composition Analysis (SCA)
+  sca:
+    enabled: true
+    tools:
+      - npm-audit
+      - snyk
+      - retire.js
+    vulnerability_threshold: 'high'
+    
+  # Container Security
+  container:
+    enabled: true
+    tools:
+      - trivy
+      - clair
+    base_image_scanning: true
+    
+  # License Compliance
+  license:
+    enabled: true
+    allowed_licenses:
+      - 'MIT'
+      - 'Apache-2.0'
+      - 'BSD-3-Clause'
+      - 'ISC'
+    prohibited_licenses:
+      - 'GPL-3.0'
+      - 'AGPL-3.0'
+
+# Build tools configuration
+build:
+  # Replace Docker with buildah
+  container_builder: 'buildah'
+  registry: 'triskelgate.azurecr.io'
+  
+  # Artifact signing
+  signing:
+    enabled: true
+    key_provider: 'azure_keyvault'
+    
+  # Supply chain security
+  supply_chain:
+    sbom_generation: true
+    provenance_tracking: true
+    
+# Quality gates
+quality_gates:
+  code_coverage:
+    minimum: 80
+  vulnerability_score:
+    maximum: 7.0
+  license_compliance:
+    required: true
+  security_scan:
+    required: true
+
+# Compliance reporting
+reporting:
+  formats:
+    - 'sarif'
+    - 'json'
+    - 'junit'
+  destinations:
+    - 'azure_devops'
+    - 'file_system'

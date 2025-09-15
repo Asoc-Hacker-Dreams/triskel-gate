@@ -1,0 +1,609 @@
+# Azure DevOps Pipeline para TriskelGate Payment Platform
+# Configuración de CI/CD para desarrollo, testing y deployment
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+      - feature/*
+  paths:
+    exclude:
+      - README.md
+      - docs/*
+      - .gitignore
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    exclude:
+      - README.md
+      - docs/*
+      - .gitignore
+
+variables:
+  # Variables globales
+  nodeVersion: '18.x'
+  npmCache: $(Pipeline.Workspace)/.npm
+  buildConfiguration: 'Release'
+  
+  # Variables por ambiente
+  ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
+    environment: 'production'
+    deploymentSlot: 'production'
+  ${{ elseif eq(variables['Build.SourceBranch'], 'refs/heads/develop') }}:
+    environment: 'staging'
+    deploymentSlot: 'staging'
+  ${{ else }}:
+    environment: 'development'
+    deploymentSlot: 'development'
+
+stages:
+  # ===============================================
+  # STAGE 1: BUILD & TEST
+  # ===============================================
+  - stage: BuildAndTest
+    displayName: 'Build and Test'
+    jobs:
+      # Job: Análisis de código y tests
+      - job: CodeQualityAndTesting
+        displayName: 'Code Quality & Testing'
+        pool:
+          vmImage: 'ubuntu-latest'
+        
+        steps:
+          # Configurar Node.js
+          - task: NodeTool@0
+            displayName: 'Setup Node.js'
+            inputs:
+              versionSpec: $(nodeVersion)
+          
+          # Cache de npm para acelerar builds
+          - task: Cache@2
+            displayName: 'Cache npm dependencies'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+                npm
+              path: $(npmCache)
+          
+          # Instalar dependencias
+          - script: |
+              npm config set cache $(npmCache)
+              npm ci --only=production
+              npm ci
+            displayName: 'Install dependencies'
+          
+          # Análisis de seguridad de dependencias
+          - script: npm audit --audit-level moderate
+            displayName: 'Security audit'
+            continueOnError: true
+          
+          # Linting del código
+          - script: npm run lint
+            displayName: 'ESLint code analysis'
+            continueOnError: true
+          
+          # Ejecutar tests unitarios
+          - script: npm run test:unit
+            displayName: 'Run unit tests'
+          
+          # Ejecutar tests de integración
+          - script: npm run test:integration
+            displayName: 'Run integration tests'
+          
+          # Generar reporte de cobertura
+          - script: npm run test:coverage
+            displayName: 'Generate coverage report'
+          
+          # Publicar resultados de tests
+          - task: PublishTestResults@2
+            displayName: 'Publish test results'
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: 'coverage/junit.xml'
+              testRunTitle: 'TriskelGate Tests'
+          
+          # Publicar reporte de cobertura
+          - task: PublishCodeCoverageResults@1
+            displayName: 'Publish coverage results'
+            condition: succeededOrFailed()
+            inputs:
+              codeCoverageTool: 'Cobertura'
+              summaryFileLocation: 'coverage/cobertura-coverage.xml'
+              reportDirectory: 'coverage/lcov-report'
+          
+          # Validar configuración de Docker
+          - script: |
+              docker-compose config
+              docker build --target development -t triskelgate-platform:dev .
+            displayName: 'Validate Docker configuration'
+          
+          # Preparar artefacto de build (excluir archivos innecesarios)
+          - script: |
+              mkdir -p $(Build.ArtifactStagingDirectory)/app
+              cp -r . $(Build.ArtifactStagingDirectory)/app/
+              cd $(Build.ArtifactStagingDirectory)/app
+              rm -rf node_modules coverage tests .git logs data/*.db* .env
+              echo "Build artifact prepared"
+            displayName: 'Prepare build artifact'
+          
+          # Crear artefacto de build
+          - task: ArchiveFiles@2
+            displayName: 'Create build artifact'
+            inputs:
+              rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/app'
+              includeRootFolder: false
+              archiveType: 'zip'
+              archiveFile: '$(Build.ArtifactStagingDirectory)/triskelgate-platform-$(Build.BuildId).zip'
+              replaceExistingArchive: true
+              verbose: true
+          
+          # Publicar artefacto
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish build artifact'
+            inputs:
+              pathToPublish: '$(Build.ArtifactStagingDirectory)'
+              artifactName: 'triskelgate-platform'
+
+  # ===============================================
+  # STAGE 2: SECURITY ANALYSIS
+  # ===============================================
+  - stage: SecurityAnalysis
+    displayName: 'Security Analysis'
+    dependsOn: BuildAndTest
+    condition: succeeded()
+    jobs:
+      - job: OSDOCompliance
+        displayName: 'Compliance Analysis'
+        pool:
+          vmImage: 'ubuntu-latest'
+        
+        steps:
+          # Configurar Node.js
+          - task: NodeTool@0
+            displayName: 'Setup Node.js'
+            inputs:
+              versionSpec: $(nodeVersion)
+          
+          # Restaurar cache de npm
+          - task: Cache@2
+            displayName: 'Restore npm cache'
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              path: $(npmCache)
+          
+          # Instalar dependencias
+          - script: |
+              npm config set cache $(npmCache)
+              npm ci
+            displayName: 'Install dependencies'
+          
+          # Instalar herramientas OSDO adicionales
+          - script: |
+              # Instalar dependencias de seguridad
+              npm install --save-dev eslint-plugin-security @microsoft/eslint-formatter-sarif license-checker
+              
+              # Instalar herramientas globales
+              sudo apt-get update
+              sudo apt-get install -y jq
+              
+              # Instalar Docker (para herramientas en contenedores)
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sudo sh get-docker.sh
+              sudo usermod -aG docker $USER
+            displayName: 'Install OSDO tools'
+          
+          # Ejecutar OSDO SAST (Static Application Security Testing)
+          - script: |
+              chmod +x .osdo/tools/sast.sh
+              ./.osdo/tools/sast.sh
+            displayName: 'OSDO SAST Analysis'
+            continueOnError: true
+          
+          # Ejecutar análisis de secretos con GitLeaks
+          - script: |
+              docker run --rm \
+                -v $(Build.SourcesDirectory):/workspace \
+                -v $(Build.SourcesDirectory)/.osdo/results:/results \
+                zricethezav/gitleaks:latest \
+                detect \
+                --source="/workspace" \
+                --report-format=json \
+                --report-path="/results/gitleaks-secrets.json" \
+                --verbose || true
+            displayName: 'OSDO GitLeaks Secrets Analysis'
+            continueOnError: true
+          
+          # Ejecutar análisis de secretos con Semgrep
+          - script: |
+              docker run --rm \
+                -v $(Build.SourcesDirectory):/workspace \
+                -v $(Build.SourcesDirectory)/.osdo/results:/results \
+                returntocorp/semgrep:latest \
+                --config=auto \
+                --json \
+                --output="/results/semgrep-secrets.json" \
+                /workspace || true
+            displayName: 'OSDO Semgrep Secrets Analysis'
+            continueOnError: true
+          
+          # Evaluar resultados de análisis de secretos
+          - script: |
+              mkdir -p .osdo/results
+              
+              # Contar detecciones de GitLeaks
+              gitleaks_count=$(cat .osdo/results/gitleaks-secrets.json 2>/dev/null | jq 'length' 2>/dev/null || echo "0")
+              
+              # Contar detecciones de Semgrep (solo secretos)
+              semgrep_count=$(cat .osdo/results/semgrep-secrets.json 2>/dev/null | jq '[.results[] | select(.extra.metadata.category == "security" and (.extra.metadata.subcategory // "" | contains("secret")))] | length' 2>/dev/null || echo "0")
+              
+              # Crear reporte de secretos
+              cat > .osdo/results/secrets-analysis-summary.json << EOF
+              {
+                "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+                "gitleaks_detections": $gitleaks_count,
+                "semgrep_detections": $semgrep_count,
+                "total_secrets_found": $((gitleaks_count + semgrep_count)),
+                "analysis_files": [
+                  "gitleaks-secrets.json",
+                  "semgrep-secrets.json"
+                ]
+              }
+              EOF
+              
+              echo "Secrets Analysis Summary:"
+              echo "GitLeaks detections: $gitleaks_count"
+              echo "Semgrep detections: $semgrep_count"
+              echo "Total secrets found: $((gitleaks_count + semgrep_count))"
+              
+              # Fallar si se encuentran secretos críticos
+              if [ $((gitleaks_count + semgrep_count)) -gt 0 ]; then
+                echo "##vso[task.logissue type=warning]Secrets detected in codebase. Review .osdo/results/secrets-analysis-summary.json"
+              fi
+            displayName: 'Evaluate Secrets Analysis Results'
+            continueOnError: true
+          
+          # Ejecutar SCA (Software Composition Analysis)
+          - script: |
+              chmod +x .osdo/tools/sca.sh
+              ./.osdo/tools/sca.sh
+            displayName: 'SCA Analysis'
+            continueOnError: true
+          
+          # Publicar resultados SARIF
+          - task: PublishTestResults@2
+            displayName: 'Publish SARIF results'
+            condition: always()
+            inputs:
+              testResultsFormat: 'VSTest'
+              testResultsFiles: '.osdo/results/*.sarif'
+              testRunTitle: 'Security Scan Results'
+              mergeTestResults: true
+          
+          # Publicar artefactos de seguridad
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Security Artifacts'
+            condition: always()
+            inputs:
+              pathToPublish: '.osdo/results'
+              artifactName: 'security-results'
+
+  # ===============================================
+  # STAGE 3: BUILDAH CONTAINER BUILD (OSDO COMPLIANT)
+  # ===============================================
+  - stage: BuildahBuild
+    displayName: 'Buildah Container Build'
+    dependsOn: SecurityAnalysis
+    condition: and(succeeded(), in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/develop'))
+    jobs:
+      - job: BuildahContainerBuild
+        displayName: 'Build Containers with Buildah'
+        pool:
+          vmImage: 'ubuntu-latest'
+        
+        steps:
+          # Descargar artefacto de build
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Download build artifacts'
+            inputs:
+              artifactName: 'triskelgate-platform'
+              downloadPath: '$(System.ArtifactsDirectory)'
+          
+          # Extraer artefacto
+          - task: ExtractFiles@1
+            displayName: 'Extract build artifact'
+            inputs:
+              archiveFilePatterns: '$(System.ArtifactsDirectory)/triskelgate-platform/*.zip'
+              destinationFolder: '$(System.DefaultWorkingDirectory)'
+              cleanDestinationFolder: true
+          
+          # Instalar Buildah
+          - script: |
+              sudo apt-get update
+              sudo apt-get install -y buildah podman runc
+              
+              # Configurar buildah para uso sin privilegios
+              sudo sysctl kernel.unprivileged_userns_clone=1
+              
+              # Verificar instalación
+              buildah --version
+              podman --version
+            displayName: 'Install Buildah and Podman'
+          
+          # Azure Container Registry Login
+          - task: Docker@2
+            displayName: 'Login to Azure Container Registry'
+            inputs:
+              containerRegistry: 'TriskelGateACR'  # Service connection name
+              command: 'login'
+          
+          # Ejecutar build con Buildah (OSDO compliant)
+          - script: |
+              chmod +x .osdo/tools/buildah-builder.sh
+              
+              # Build con buildah según ambiente
+              if [ "$(environment)" = "staging" ]; then
+                ./.osdo/tools/buildah-builder.sh build dev true
+              else
+                ./.osdo/tools/buildah-builder.sh build prod true
+              fi
+            displayName: 'Build with Buildah (OSDO)'
+            env:
+              REGISTRY: 'triskelgate.azurecr.io'
+              IMAGE_NAME: 'triskelgate-platform'
+          
+          # OSDO STEP 1: Análisis del Dockerfile (docker lint + trivy)
+          - script: |
+              chmod +x .osdo/tools/container-scan.sh
+              
+              # Configurar push al registry según la rama
+              if [[ "$(Build.SourceBranch)" == "refs/heads/main" ]] || [[ "$(Build.SourceBranch)" == "refs/heads/develop" ]]; then
+                echo "🚀 Rama principal detectada - habilitando push al registry"
+                export ALLOW_REGISTRY_PUSH=true
+              else
+                echo "🔒 Rama feature/PR - deshabilitando push al registry"
+                export ALLOW_REGISTRY_PUSH=false
+              fi
+              
+              # Ejecutar proceso OSDO de 3 pasos para containers
+              # STEP 1: Análisis del Dockerfile sin build
+              # STEP 2: Build local + análisis (sin push)
+              # STEP 3: Push al registry solo si pasa pruebas (controlado por ALLOW_REGISTRY_PUSH)
+              
+              echo "🐳 Iniciando proceso OSDO de 3 pasos para containers..."
+              echo "📍 Registry push habilitado: $ALLOW_REGISTRY_PUSH"
+              ./.osdo/tools/container-scan.sh
+            displayName: 'OSDO Container Security - 3 Step Process'
+            continueOnError: false  # Fallar si hay issues críticos
+            env:
+              REGISTRY: 'triskelgate.azurecr.io'
+              IMAGE_NAME: 'triskelgate-platform'
+          
+          # Publicar artefactos de container security
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish container security artifacts'
+            condition: always()
+            inputs:
+              pathToPublish: '.osdo/results'
+              artifactName: 'osdo-container-security'
+
+  # ===============================================
+  # STAGE 4: OSDO QUALITY GATES
+  # ===============================================
+  - stage: OSDOQualityGates
+    displayName: 'OSDO Quality Gates'
+    dependsOn: BuildahBuild
+    condition: succeeded()
+    jobs:
+      - job: EvaluateQualityGates
+        displayName: 'Evaluate OSDO Quality Gates'
+        pool:
+          vmImage: 'ubuntu-latest'
+        
+        steps:
+          # Descargar artefactos de seguridad
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Download OSDO security artifacts'
+            inputs:
+              artifactName: 'osdo-security-results'
+              downloadPath: '$(System.ArtifactsDirectory)'
+          
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Download container security artifacts'
+            inputs:
+              artifactName: 'osdo-container-security'
+              downloadPath: '$(System.ArtifactsDirectory)'
+          
+          # Ejecutar evaluación de quality gates
+          - script: |
+              chmod +x .osdo/osdo.sh
+              ./.osdo/osdo.sh gates
+            displayName: 'Evaluate OSDO Quality Gates'
+          
+          # Generar reporte consolidado OSDO
+          - script: |
+              ./.osdo/osdo.sh report
+            displayName: 'Generate OSDO Consolidated Report'
+          
+          # Publicar reporte final OSDO
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish OSDO final report'
+            condition: always()
+            inputs:
+              pathToPublish: '.osdo/results'
+              artifactName: 'osdo-final-report'
+
+  # ===============================================
+  # STAGE 5: DEPLOYMENT
+  # ===============================================
+  - stage: Deploy
+    displayName: 'Deploy to Azure'
+    dependsOn: OSDOQualityGates
+    condition: and(succeeded(), in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/develop'))
+    jobs:
+      # Deployment a Staging
+      - deployment: DeployToStaging
+        displayName: 'Deploy to Staging'
+        condition: eq(variables.environment, 'staging')
+        environment: 'TriskelGate-Staging'
+        pool:
+          vmImage: 'ubuntu-latest'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                # Deploy a Azure Container Instances o App Service
+                - task: AzureWebAppContainer@1
+                  displayName: 'Deploy to Azure App Service'
+                  inputs:
+                    azureSubscription: 'TriskelGate-Azure-Connection'  # Service connection
+                    appName: 'triskelgate-platform-staging'
+                    containers: 'triskelgate.azurecr.io/triskelgate/payment-platform:$(Build.BuildId)'
+                    appSettings: |
+                      -NODE_ENV staging
+                      -PORT 3001
+                      -JWT_SECRET $(JWT_SECRET_STAGING)
+                      -STRIPE_SECRET_KEY $(STRIPE_SECRET_KEY_STAGING)
+                      -DATABASE_PATH /app/data/platform.db
+                      -LOG_LEVEL info
+                
+                # Health check post-deployment
+                - script: |
+                    echo "Waiting for application to start..."
+                    sleep 30
+                    curl -f https://triskelgate-platform-staging.azurewebsites.net/health || exit 1
+                  displayName: 'Health check'
+                  timeoutInMinutes: 5
+
+      # Deployment a Producción (con aprobación manual)
+      - deployment: DeployToProduction
+        displayName: 'Deploy to Production'
+        condition: eq(variables.environment, 'production')
+        environment: 'TriskelGate-Production'
+        pool:
+          vmImage: 'ubuntu-latest'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                # Blue-Green deployment con slots
+                - task: AzureWebAppContainer@1
+                  displayName: 'Deploy to staging slot'
+                  inputs:
+                    azureSubscription: 'TriskelGate-Azure-Connection'
+                    appName: 'triskelgate-platform-prod'
+                    deployToSlotOrASE: true
+                    slotName: 'staging'
+                    containers: 'triskelgate.azurecr.io/triskelgate/payment-platform:$(Build.BuildId)'
+                    appSettings: |
+                      -NODE_ENV production
+                      -PORT 3001
+                      -JWT_SECRET $(JWT_SECRET_PROD)
+                      -STRIPE_SECRET_KEY $(STRIPE_SECRET_KEY_PROD)
+                      -DATABASE_PATH /app/data/platform.db
+                      -LOG_LEVEL warn
+                
+                # Health check en staging slot
+                - script: |
+                    echo "Health check on staging slot..."
+                    sleep 30
+                    curl -f https://triskelgate-platform-prod-staging.azurewebsites.net/health || exit 1
+                  displayName: 'Health check staging slot'
+                
+                # Swap slots (Blue-Green deployment)
+                - task: AzureAppServiceManage@0
+                  displayName: 'Swap deployment slots'
+                  inputs:
+                    azureSubscription: 'TriskelGate-Azure-Connection'
+                    WebAppName: 'triskelgate-platform-prod'
+                    ResourceGroupName: 'triskelgate-rg'
+                    SourceSlot: 'staging'
+                    SwapWithProduction: true
+                
+                # Health check final en producción
+                - script: |
+                    echo "Final health check on production..."
+                    sleep 30
+                    curl -f https://triskelgate-platform.azurewebsites.net/health || exit 1
+                  displayName: 'Final health check'
+
+  # ===============================================
+  # STAGE 5: POST-DEPLOYMENT TESTS
+  # ===============================================
+  - stage: PostDeploymentTests
+    displayName: 'Post-Deployment Tests'
+    dependsOn: Deploy
+    condition: succeeded()
+    jobs:
+      - job: SmokeTests
+        displayName: 'Smoke Tests'
+        pool:
+          vmImage: 'ubuntu-latest'
+        
+        steps:
+          # Tests de humo básicos
+          - script: |
+              if [ "$(environment)" = "staging" ]; then
+                BASE_URL="https://triskelgate-platform-staging.azurewebsites.net"
+              else
+                BASE_URL="https://triskelgate-platform.azurewebsites.net"
+              fi
+              
+              echo "Running smoke tests against: $BASE_URL"
+              
+              # Health check
+              curl -f "$BASE_URL/health" || exit 1
+              
+              # API info
+              curl -f "$BASE_URL/api/info" || exit 1
+              
+              # Swagger docs
+              curl -f "$BASE_URL/api/docs" || exit 1
+              
+              # PWA manifest
+              curl -f "$BASE_URL/manifest.json" || exit 1
+              
+              echo "All smoke tests passed!"
+            displayName: 'Basic smoke tests'
+          
+          # Tests de rendimiento básicos
+          - script: |
+              if [ "$(environment)" = "staging" ]; then
+                BASE_URL="https://triskelgate-platform-staging.azurewebsites.net"
+              else
+                BASE_URL="https://triskelgate-platform.azurewebsites.net"
+              fi
+              
+              echo "Running performance tests..."
+              
+              # Test de respuesta de API (debe ser < 2 segundos)
+              RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}' "$BASE_URL/api/info")
+              echo "API response time: ${RESPONSE_TIME}s"
+              
+              if (( $(echo "$RESPONSE_TIME > 2.0" | bc -l) )); then
+                echo "Performance test failed: API response time too slow"
+                exit 1
+              fi
+              
+              echo "Performance tests passed!"
+            displayName: 'Performance tests'
+            continueOnError: true
+
+# ===============================================
+# CONFIGURACIÓN DE NOTIFICACIONES
+# ===============================================
+resources:
+  webhooks:
+    - webhook: TriskelGateNotifications
+      connection: TriskelGateSlack  # Service connection para Slack
+      filters:
+        - path: result
+          value: failed
+        - path: result
+          value: succeeded

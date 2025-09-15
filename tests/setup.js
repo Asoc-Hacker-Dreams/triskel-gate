@@ -1,14 +1,5 @@
-import { jest } from '@jest/globals';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Configuración global para pruebas
-global.__dirname = __dirname;
-global.__filename = __filename;
+const path = require('path');
+const fs = require('fs');
 
 // Variables de entorno para testing
 process.env.NODE_ENV = 'test';
@@ -33,50 +24,6 @@ afterAll(() => {
     fs.unlinkSync(testDbPath);
   }
 });
-
-// Mock para Winston logger
-jest.unstable_mockModule('winston', () => ({
-  createLogger: jest.fn(() => ({
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn()
-  })),
-  format: {
-    combine: jest.fn(),
-    timestamp: jest.fn(),
-    errors: jest.fn(),
-    json: jest.fn(),
-    printf: jest.fn()
-  },
-  transports: {
-    File: jest.fn(),
-    Console: jest.fn()
-  }
-}));
-
-// Mock para nodemailer
-jest.unstable_mockModule('nodemailer', () => ({
-  createTransporter: jest.fn(() => ({
-    sendMail: jest.fn().mockResolvedValue({ messageId: 'test-message-id' })
-  }))
-}));
-
-// Mock para Stripe
-jest.unstable_mockModule('stripe', () => ({
-  default: jest.fn(() => ({
-    paymentIntents: {
-      create: jest.fn().mockResolvedValue({
-        id: 'pi_test_123',
-        client_secret: 'pi_test_123_secret_test'
-      }),
-      retrieve: jest.fn().mockResolvedValue({
-        id: 'pi_test_123',
-        status: 'succeeded'
-      })
-    }
-  }))
-}));
 
 // Utilidades para pruebas
 global.testUtils = {

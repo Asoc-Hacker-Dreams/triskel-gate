@@ -1,11 +1,8 @@
 # Dockerfile para TriskelGate Payment Platform
 FROM node:20-alpine AS base
 
-# Instalar dependencias del sistema necesarias
-RUN apk add --no-cache \
-    sqlite \
-    curl \
-    dumb-init
+# Usar tini como init process (ya incluido en el contenedor)
+# No necesitamos instalar paquetes adicionales para funcionalidad básica
 
 # Crear usuario no-root para seguridad
 RUN addgroup -g 1001 -S nodejs
@@ -16,7 +13,6 @@ WORKDIR /app
 
 # Copiar archivos de dependencias
 COPY package*.json ./
-COPY .npmrc* ./
 
 # Etapa de desarrollo
 FROM base AS development
@@ -35,16 +31,16 @@ USER triskel
 EXPOSE 3001
 
 # Comando de desarrollo
-CMD ["dumb-init", "npm", "run", "dev"]
+CMD ["npm", "run", "dev"]
 
 # Etapa de construcción
 FROM base AS builder
 
-# Instalar dependencias de producción únicamente
-RUN npm ci --only=production && npm cache clean --force
-
-# Copiar código fuente
+# Copiar código fuente primero
 COPY . .
+
+# Instalar dependencias de producción únicamente
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Construir aplicación (si es necesario)
 RUN npm run build
@@ -55,8 +51,8 @@ RUN rm -rf tests/ .git/ .github/ docs/ *.md
 # Etapa de producción
 FROM node:20-alpine AS production
 
-# Instalar dumb-init para manejo de procesos
-RUN apk add --no-cache dumb-init sqlite curl
+# Usar tini para manejo de procesos (ya incluido en node:alpine)
+# No es necesario instalar paquetes adicionales
 
 # Crear usuario no-root
 RUN addgroup -g 1001 -S nodejs
@@ -85,7 +81,7 @@ EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3001/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
 
 # Comando de producción
-CMD ["dumb-init", "node", "src/index.js"]
+CMD ["node", "src/index.js"]

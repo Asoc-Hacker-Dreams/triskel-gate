@@ -42,7 +42,7 @@ export const db = drizzle(sqlite, { schema });
 export async function runMigrations() {
   try {
     const migrationsFolder = path.join(__dirname, '../migrations');
-    
+
     // En desarrollo, no ejecutar migraciones automáticamente
     // Ya usamos drizzle-kit push:sqlite para gestionar la BD
     if (process.env.NODE_ENV === 'production' && fs.existsSync(migrationsFolder)) {

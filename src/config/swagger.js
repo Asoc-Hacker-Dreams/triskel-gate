@@ -3,10 +3,10 @@ import swaggerUi from 'swagger-ui-express';
 
 const options = {
   definition: {
-              qrPath: {
-              type: 'string',
-              example: '/qr-codes/TRISKELGATE-2025-001.png'
-            },enapi: '3.0.0',
+    qrPath: {
+      type: 'string',
+      example: '/qr-codes/TRISKELGATE-2025-001.png'
+    },enapi: '3.0.0',
     info: {
       title: 'TriskelGate Payment Platform API',
       version: '1.0.0',
@@ -330,7 +330,7 @@ const options = {
   apis: [
     './src/routes/*.js', // Rutas con documentación
     './src/index.js'     // Archivo principal
-  ],
+  ]
 };
 
 const specs = swaggerJsdoc(options);

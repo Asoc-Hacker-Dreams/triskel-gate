@@ -10,7 +10,7 @@ import PDFDocument from 'pdfkit';
 export class PaymentService {
   constructor() {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2020-08-27',
+      apiVersion: '2020-08-27'
     });
   }
 
@@ -117,12 +117,12 @@ export class PaymentService {
               product_data: {
                 name: `${event.name} - ${ticketType.name}`,
                 description: ticketType.description,
-                images: metadata.images || [],
+                images: metadata.images || []
               },
-              unit_amount: Math.round(ticketType.price * 100), // Convertir a centavos
+              unit_amount: Math.round(ticketType.price * 100) // Convertir a centavos
             },
-            quantity: quantity,
-          },
+            quantity: quantity
+          }
         ],
         mode: 'payment',
         customer_email: customerEmail,
@@ -136,7 +136,7 @@ export class PaymentService {
           quantity: quantity.toString(),
           ...metadata
         },
-        expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutos
+        expires_at: Math.floor(Date.now() / 1000) + (30 * 60) // 30 minutos
       });
 
       // Actualizar orden con ID de sesión de Stripe
@@ -208,7 +208,7 @@ export class PaymentService {
         );
       }
 
-      const ticketResults = await Promise.all(ticketPromises);
+      await Promise.all(ticketPromises);
 
       // Actualizar estadísticas de ventas
       await this.updateSalesStats(eventId, quantity, order[0].totalAmount);
@@ -266,12 +266,12 @@ export class PaymentService {
   /**
    * Genera PDF con los tickets
    */
-  async generateTicketsPDF(tickets, eventData, orderData) {
+  async generateTicketsPDF(tickets, eventData, _orderData) {
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
         size: 'A4',
         margin: 50,
-        autoFirstPage: false,
+        autoFirstPage: false
       });
 
       const buffers = [];
@@ -289,7 +289,7 @@ export class PaymentService {
             const qrCodeBuffer = await QRCode.toBuffer(ticket.qrCode, {
               errorCorrectionLevel: 'H',
               margin: 1,
-              width: 180,
+              width: 180
             });
 
             const ticketWidth = 400;
@@ -314,14 +314,14 @@ export class PaymentService {
             doc.fontSize(32).fillColor('#000000').font('Helvetica-Bold');
             doc.text(eventData.name, ticketX, ticketY + 140, {
               align: 'center',
-              width: ticketWidth,
+              width: ticketWidth
             });
 
             // Información del evento
             doc.fontSize(16).fillColor('#000000');
             doc.text('Fecha:', ticketX, ticketY + 200);
             doc.text(new Date(eventData.startDate).toLocaleDateString('es-ES'), ticketX, ticketY + 220);
-            
+
             doc.text('Ubicación:', ticketX + 200, ticketY + 200);
             doc.text(eventData.location, ticketX + 200, ticketY + 220);
 
@@ -337,13 +337,13 @@ export class PaymentService {
               .fontSize(18)
               .text(`${ticket.price}€`, ticketX + 150, ticketY + 365, {
                 align: 'center',
-                width: 100,
+                width: 100
               });
 
             // QR Code
             doc.image(qrCodeBuffer, ticketX + (ticketWidth - 180) / 2, ticketY + 420, {
               width: 180,
-              height: 180,
+              height: 180
             });
 
             // Información adicional
@@ -368,7 +368,7 @@ export class PaymentService {
    */
   async updateSalesStats(eventId, quantity, revenue) {
     const today = new Date().toISOString().split('T')[0];
-    
+
     try {
       // Verificar si ya existe un registro para hoy
       const existingStats = await db

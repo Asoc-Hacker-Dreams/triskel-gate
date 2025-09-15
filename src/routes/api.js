@@ -1,6 +1,4 @@
 import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { body, validationResult } from 'express-validator';
 import ticketValidationService from '../services/ticketValidation.js';
@@ -46,7 +44,7 @@ const handleValidationErrors = (req, res, next) => {
 router.get('/events', async (req, res) => {
   try {
     const activeEvents = await db.select().from(events).where(eq(events.status, 'active'));
-    
+
     res.json({
       success: true,
       data: activeEvents,
@@ -66,12 +64,12 @@ router.get('/events', async (req, res) => {
 router.get('/events/:eventId/ticket-types', async (req, res) => {
   try {
     const { eventId } = req.params;
-    
+
     // Verificar que el evento existe y está activo
     const event = await db.select().from(events).where(
       and(eq(events.id, eventId), eq(events.status, 'active'))
     ).limit(1);
-    
+
     if (!event.length) {
       return res.status(404).json({
         success: false,
@@ -79,12 +77,12 @@ router.get('/events/:eventId/ticket-types', async (req, res) => {
         message: 'Evento no encontrado o inactivo'
       });
     }
-    
+
     // Obtener tipos de tickets activos para el evento
     const ticketTypesData = await db.select().from(ticketTypes).where(
       and(eq(ticketTypes.eventId, eventId), eq(ticketTypes.isActive, true))
     );
-    
+
     res.json({
       success: true,
       data: ticketTypesData,
@@ -105,9 +103,9 @@ router.get('/events/:eventId/ticket-types', async (req, res) => {
 router.get('/events/:eventId', async (req, res) => {
   try {
     const { eventId } = req.params;
-    
+
     const event = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
-    
+
     if (!event.length) {
       return res.status(404).json({
         success: false,
@@ -115,7 +113,7 @@ router.get('/events/:eventId', async (req, res) => {
         message: 'Evento no encontrado'
       });
     }
-    
+
     res.json({
       success: true,
       data: event[0]
@@ -141,7 +139,7 @@ router.post('/validate',
     body('qrCode').notEmpty().withMessage('Código QR es requerido'),
     body('staffId').optional().isInt().withMessage('ID de staff debe ser un número'),
     body('location').optional().isString().withMessage('Ubicación debe ser texto'),
-    body('deviceInfo').optional().isString().withMessage('Info del dispositivo debe ser texto'),
+    body('deviceInfo').optional().isString().withMessage('Info del dispositivo debe ser texto')
   ],
   handleValidationErrors,
   async (req, res) => {
@@ -244,7 +242,7 @@ router.post('/invalidate',
   authMiddleware,
   [
     body('ticketId').isInt().withMessage('ID de ticket debe ser un número'),
-    body('reason').optional().isString().withMessage('Razón debe ser texto'),
+    body('reason').optional().isString().withMessage('Razón debe ser texto')
   ],
   handleValidationErrors,
   async (req, res) => {
@@ -286,7 +284,7 @@ router.post('/payment/create-session',
     body('customerName').notEmpty().withMessage('Nombre del cliente requerido'),
     body('customerPhone').optional().isMobilePhone().withMessage('Teléfono válido'),
     body('successUrl').isURL().withMessage('URL de éxito válida requerida'),
-    body('cancelUrl').isURL().withMessage('URL de cancelación válida requerida'),
+    body('cancelUrl').isURL().withMessage('URL de cancelación válida requerida')
   ],
   handleValidationErrors,
   async (req, res) => {
@@ -324,15 +322,15 @@ router.post('/payment/webhook',
 
       // Manejar eventos de Stripe
       switch (event.type) {
-        case 'checkout.session.completed':
-          await paymentService.processSuccessfulPayment(event.data.object);
-          break;
-        case 'payment_intent.payment_failed':
-          // Manejar pagos fallidos
-          console.log('Payment failed:', event.data.object);
-          break;
-        default:
-          console.log(`Unhandled event type ${event.type}`);
+      case 'checkout.session.completed':
+        await paymentService.processSuccessfulPayment(event.data.object);
+        break;
+      case 'payment_intent.payment_failed':
+        // Manejar pagos fallidos
+        console.log('Payment failed:', event.data.object);
+        break;
+      default:
+        console.log(`Unhandled event type ${event.type}`);
       }
 
       res.json({ received: true });
@@ -349,14 +347,14 @@ router.post('/payment/refund',
   authMiddleware,
   [
     body('orderId').isInt().withMessage('ID de orden requerido'),
-    body('reason').optional().isString().withMessage('Razón debe ser texto'),
+    body('reason').optional().isString().withMessage('Razón debe ser texto')
   ],
   handleValidationErrors,
   async (req, res) => {
     try {
       const { orderId, reason } = req.body;
       const result = await paymentService.processRefund(orderId, reason);
-      
+
       const statusCode = result.success ? 200 : 400;
       res.status(statusCode).json(result);
 

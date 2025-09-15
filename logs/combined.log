@@ -32,3 +32,12 @@
 {"level":"info","message":"📖 Documentación disponible en http://localhost:3002/api/info","service":"triskelgate-payment-platform","timestamp":"2025-06-09T22:51:51.943Z"}
 {"level":"info","message":"🔗 Health check en http://localhost:3002/api/health","service":"triskelgate-payment-platform","timestamp":"2025-06-09T22:51:51.944Z"}
 {"ip":"::1","level":"info","message":"GET /health","service":"triskelgate-payment-platform","timestamp":"2025-06-09T22:52:03.205Z","userAgent":"curl/8.7.1"}
+{"level":"info","message":"🚀 Iniciando TriskelGate Payment Platform...","service":"triskelgate-payment-platform","timestamp":"2025-06-10T09:59:21.408Z"}
+{"level":"info","message":"✅ Base de datos inicializada","service":"triskelgate-payment-platform","timestamp":"2025-06-10T09:59:21.409Z"}
+{"level":"info","message":"✅ Usuario administrador creado: admin@triskelgate.com","service":"triskelgate-payment-platform","timestamp":"2025-06-10T09:59:21.750Z"}
+{"level":"info","message":"🎫 TriskelGate Payment Platform corriendo en puerto 3001","service":"triskelgate-payment-platform","timestamp":"2025-06-10T09:59:21.752Z"}
+{"level":"info","message":"📖 Documentación disponible en http://localhost:3001/api/info","service":"triskelgate-payment-platform","timestamp":"2025-06-10T09:59:21.752Z"}
+{"level":"info","message":"🔗 Health check en http://localhost:3001/api/health","service":"triskelgate-payment-platform","timestamp":"2025-06-10T09:59:21.752Z"}
+{"ip":"::1","level":"info","message":"GET /health","service":"triskelgate-payment-platform","timestamp":"2025-06-10T09:59:34.090Z","userAgent":"curl/8.7.1"}
+{"ip":"::1","level":"info","message":"GET /","service":"triskelgate-payment-platform","timestamp":"2025-06-10T09:59:54.088Z","userAgent":"curl/8.7.1"}
+{"level":"info","message":"🔄 Cerrando aplicación gracefully...","service":"triskelgate-payment-platform","timestamp":"2025-06-10T10:12:51.844Z"}

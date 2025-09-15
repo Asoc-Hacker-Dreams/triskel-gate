@@ -41,30 +41,30 @@ router.get('/dashboard',
       ] = await Promise.all([
         // Total de eventos
         db.select({ count: count() }).from(events),
-        
+
         // Total de tickets
         db.select({ count: count() }).from(tickets),
-        
+
         // Revenue total
         db.select({ total: sum(orders.totalAmount) })
           .from(orders)
           .where(eq(orders.status, 'completed')),
-        
+
         // Tickets validados
         db.select({ count: count() })
           .from(tickets)
           .where(eq(tickets.isUsed, true)),
-        
+
         // Órdenes recientes
         db.select({
           order: orders,
           eventName: events.name
         })
-        .from(orders)
-        .innerJoin(events, eq(orders.eventId, events.id))
-        .orderBy(desc(orders.createdAt))
-        .limit(10),
-        
+          .from(orders)
+          .innerJoin(events, eq(orders.eventId, events.id))
+          .orderBy(desc(orders.createdAt))
+          .limit(10),
+
         // Eventos más populares
         db.select({
           eventId: tickets.eventId,
@@ -72,11 +72,11 @@ router.get('/dashboard',
           ticketCount: count(tickets.id),
           revenue: sum(tickets.price)
         })
-        .from(tickets)
-        .innerJoin(events, eq(tickets.eventId, events.id))
-        .groupBy(tickets.eventId, events.name)
-        .orderBy(desc(count(tickets.id)))
-        .limit(5)
+          .from(tickets)
+          .innerJoin(events, eq(tickets.eventId, events.id))
+          .groupBy(tickets.eventId, events.name)
+          .orderBy(desc(count(tickets.id)))
+          .limit(5)
       ]);
 
       const dashboardData = {
@@ -85,8 +85,8 @@ router.get('/dashboard',
           totalTickets: totalTickets[0].count,
           totalRevenue: totalRevenue[0].total || 0,
           totalValidated: totalValidated[0].count,
-          validationRate: totalTickets[0].count > 0 
-            ? ((totalValidated[0].count / totalTickets[0].count) * 100).toFixed(2) 
+          validationRate: totalTickets[0].count > 0
+            ? ((totalValidated[0].count / totalTickets[0].count) * 100).toFixed(2)
             : 0
         },
         recentActivity: {
@@ -220,8 +220,8 @@ router.get('/ticket-types',
         ticketType: ticketTypes,
         event: events
       })
-      .from(ticketTypes)
-      .innerJoin(events, eq(ticketTypes.eventId, events.id));
+        .from(ticketTypes)
+        .innerJoin(events, eq(ticketTypes.eventId, events.id));
 
       if (eventId) {
         query = query.where(eq(ticketTypes.eventId, parseInt(eventId)));
@@ -311,13 +311,19 @@ router.get('/orders',
         order: orders,
         event: events
       })
-      .from(orders)
-      .innerJoin(events, eq(orders.eventId, events.id));
+        .from(orders)
+        .innerJoin(events, eq(orders.eventId, events.id));
 
       const conditions = [];
-      if (status) conditions.push(eq(orders.status, status));
-      if (eventId) conditions.push(eq(orders.eventId, parseInt(eventId)));
-      if (email) conditions.push(like(orders.customerEmail, `%${email}%`));
+      if (status) {
+        conditions.push(eq(orders.status, status));
+      }
+      if (eventId) {
+        conditions.push(eq(orders.eventId, parseInt(eventId)));
+      }
+      if (email) {
+        conditions.push(like(orders.customerEmail, `%${email}%`));
+      }
 
       if (conditions.length > 0) {
         query = query.where(and(...conditions));
@@ -359,10 +365,10 @@ router.get('/orders/:orderId',
         event: events,
         tickets: tickets
       })
-      .from(orders)
-      .innerJoin(events, eq(orders.eventId, events.id))
-      .leftJoin(tickets, eq(tickets.orderId, orders.id))
-      .where(eq(orders.id, orderId));
+        .from(orders)
+        .innerJoin(events, eq(orders.eventId, events.id))
+        .leftJoin(tickets, eq(tickets.orderId, orders.id))
+        .where(eq(orders.id, orderId));
 
       if (orderDetails.length === 0) {
         return res.status(404).json({
@@ -423,13 +429,19 @@ router.get('/analytics/sales',
         revenue: salesStats.revenue,
         refunds: salesStats.refunds
       })
-      .from(salesStats)
-      .innerJoin(events, eq(salesStats.eventId, events.id));
+        .from(salesStats)
+        .innerJoin(events, eq(salesStats.eventId, events.id));
 
       const conditions = [];
-      if (eventId) conditions.push(eq(salesStats.eventId, parseInt(eventId)));
-      if (startDate) conditions.push(gte(salesStats.date, startDate));
-      if (endDate) conditions.push(lte(salesStats.date, endDate));
+      if (eventId) {
+        conditions.push(eq(salesStats.eventId, parseInt(eventId)));
+      }
+      if (startDate) {
+        conditions.push(gte(salesStats.date, startDate));
+      }
+      if (endDate) {
+        conditions.push(lte(salesStats.date, endDate));
+      }
 
       if (conditions.length > 0) {
         query = query.where(and(...conditions));
@@ -474,15 +486,21 @@ router.get('/analytics/validation-logs',
         event: events,
         staffMember: staff
       })
-      .from(validationLogs)
-      .leftJoin(tickets, eq(validationLogs.ticketId, tickets.id))
-      .leftJoin(events, eq(tickets.eventId, events.id))
-      .leftJoin(staff, eq(validationLogs.staffId, staff.id));
+        .from(validationLogs)
+        .leftJoin(tickets, eq(validationLogs.ticketId, tickets.id))
+        .leftJoin(events, eq(tickets.eventId, events.id))
+        .leftJoin(staff, eq(validationLogs.staffId, staff.id));
 
       const conditions = [];
-      if (eventId) conditions.push(eq(events.id, parseInt(eventId)));
-      if (staffId) conditions.push(eq(validationLogs.staffId, parseInt(staffId)));
-      if (success !== undefined) conditions.push(eq(validationLogs.success, success === 'true'));
+      if (eventId) {
+        conditions.push(eq(events.id, parseInt(eventId)));
+      }
+      if (staffId) {
+        conditions.push(eq(validationLogs.staffId, parseInt(staffId)));
+      }
+      if (success !== undefined) {
+        conditions.push(eq(validationLogs.success, success === 'true'));
+      }
 
       if (conditions.length > 0) {
         query = query.where(and(...conditions));
