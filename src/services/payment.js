@@ -120,8 +120,8 @@ export class PaymentService {
           platformFee,
           stripeFee,
           status: 'pending',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          createdAt: new Date(),
+          updatedAt: new Date()
         })
         .returning();
 
@@ -171,7 +171,7 @@ export class PaymentService {
         .update(orders)
         .set({
           stripeSessionId: session.id,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date()
         })
         .where(eq(orders.id, newOrder[0].id));
 
@@ -226,7 +226,7 @@ export class PaymentService {
         .set({
           status: 'completed',
           stripePaymentIntentId: sessionData.payment_intent,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date()
         })
         .where(eq(orders.id, orderId));
 
@@ -289,8 +289,8 @@ export class PaymentService {
       holderEmail: order.customerEmail,
       price: ticketType[0].price,
       isUsed: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
   }
 
@@ -398,7 +398,7 @@ export class PaymentService {
    * Actualiza estadísticas de ventas
    */
   async updateSalesStats(eventId, quantity, revenue) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date();
     
     try {
       // Verificar si ya existe un registro para hoy
@@ -430,7 +430,7 @@ export class PaymentService {
             ticketsSold: quantity,
             revenue: revenue,
             refunds: 0,
-            createdAt: new Date().toISOString()
+            createdAt: new Date()
           });
       }
     } catch (error) {
@@ -512,7 +512,7 @@ export class PaymentService {
         .set({
           status: 'refunded',
           notes: reason,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date()
         })
         .where(eq(orders.id, orderId));
 
@@ -522,7 +522,7 @@ export class PaymentService {
         .set({
           isUsed: true, // Marcar como usado para que no se puedan usar
           notes: 'Refunded',
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date()
         })
         .where(eq(tickets.orderId, orderId));
 
