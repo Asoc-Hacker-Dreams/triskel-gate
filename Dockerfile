@@ -1,5 +1,5 @@
 # Dockerfile para TriskelGate Payment Platform
-FROM node:20-alpine AS base
+FROM node:18-alpine AS base
 
 # Instalar dependencias del sistema necesarias
 RUN apk add --no-cache \
@@ -22,7 +22,7 @@ COPY .npmrc* ./
 FROM base AS development
 
 # Instalar todas las dependencias (incluyendo dev)
-RUN npm ci
+RUN npm install
 
 # Copiar código fuente
 COPY . .
@@ -41,7 +41,7 @@ CMD ["dumb-init", "npm", "run", "dev"]
 FROM base AS builder
 
 # Instalar dependencias de producción únicamente
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --production=false && npm cache clean --force
 
 # Copiar código fuente
 COPY . .
@@ -53,7 +53,7 @@ RUN npm run build
 RUN rm -rf tests/ .git/ .github/ docs/ *.md
 
 # Etapa de producción
-FROM node:20-alpine AS production
+FROM node:18-alpine AS production
 
 # Instalar dumb-init para manejo de procesos
 RUN apk add --no-cache dumb-init sqlite curl

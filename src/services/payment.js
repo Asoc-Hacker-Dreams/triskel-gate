@@ -9,9 +9,16 @@ import PDFDocument from 'pdfkit';
 
 export class PaymentService {
   constructor() {
-    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2020-08-27',
-    });
+    this.testMode = process.env.PAYMENT_TEST_MODE === 'true';
+    this.skipSaleWindowCheck = process.env.SKIP_SALE_WINDOW_CHECK === 'true';
+
+    if (!this.testMode) {
+      this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2020-08-27',
+      });
+    } else {
+      this.stripe = null;
+    }
   }
 
   /**
@@ -62,20 +69,22 @@ export class PaymentService {
       const saleStart = new Date(ticketType.saleStartDate);
       const saleEnd = new Date(ticketType.saleEndDate);
 
-      if (now < saleStart) {
-        return {
-          success: false,
-          error: 'SALE_NOT_STARTED',
-          message: 'La venta de tickets aún no ha comenzado'
-        };
-      }
+      if (!this.skipSaleWindowCheck) {
+        if (now < saleStart) {
+          return {
+            success: false,
+            error: 'SALE_NOT_STARTED',
+            message: 'La venta de tickets aún no ha comenzado'
+          };
+        }
 
-      if (now > saleEnd) {
-        return {
-          success: false,
-          error: 'SALE_ENDED',
-          message: 'La venta de tickets ha terminado'
-        };
+        if (now > saleEnd) {
+          return {
+            success: false,
+            error: 'SALE_ENDED',
+            message: 'La venta de tickets ha terminado'
+          };
+        }
       }
 
       // Verificar disponibilidad
@@ -89,7 +98,13 @@ export class PaymentService {
 
       // Generar número de orden único
       const orderNumber = this.generateOrderNumber();
-      const totalAmount = ticketType.price * quantity;
+      
+      // Calculate fees
+      const subtotal = ticketType.price * quantity;
+      const platformFeePercent = event.platformFeePercent || 3.0;
+      const platformFee = Math.round(subtotal * (platformFeePercent / 100) * 100) / 100;
+      const stripeFee = Math.round((subtotal * 0.029 + quantity * 0.25) * 100) / 100;
+      const totalAmount = Math.round((subtotal + platformFee + stripeFee) * 100) / 100;
 
       // Crear orden pendiente en la base de datos
       const newOrder = await db
@@ -101,45 +116,57 @@ export class PaymentService {
           customerName,
           customerPhone,
           totalAmount,
+          subtotal,
+          platformFee,
+          stripeFee,
           status: 'pending',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         })
         .returning();
 
-      // Crear sesión de Stripe
-      const session = await this.stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'eur',
-              product_data: {
-                name: `${event.name} - ${ticketType.name}`,
-                description: ticketType.description,
-                images: metadata.images || [],
-              },
-              unit_amount: Math.round(ticketType.price * 100), // Convertir a centavos
-            },
-            quantity: quantity,
-          },
-        ],
-        mode: 'payment',
-        customer_email: customerEmail,
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        metadata: {
-          orderId: newOrder[0].id.toString(),
-          orderNumber: orderNumber,
-          eventId: eventId.toString(),
-          ticketTypeId: ticketTypeId.toString(),
-          quantity: quantity.toString(),
-          ...metadata
-        },
-        expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutos
-      });
+      // Crear sesión de Stripe (o mock en modo prueba)
+      let session;
 
-      // Actualizar orden con ID de sesión de Stripe
+      if (this.testMode) {
+        session = {
+          id: `test_session_${newOrder[0].id}`,
+          url: `${successUrl}?testMode=true&orderId=${newOrder[0].id}`
+        };
+      } else {
+        session = await this.stripe.checkout.sessions.create({
+          payment_method_types: ['card'],
+          line_items: [
+            {
+              price_data: {
+                currency: 'eur',
+                product_data: {
+                  name: `${event.name} - ${ticketType.name}`,
+                  description: ticketType.description,
+                  images: metadata.images || [],
+                },
+                unit_amount: Math.round(ticketType.price * 100), // Convertir a centavos
+              },
+              quantity: quantity,
+            },
+          ],
+          mode: 'payment',
+          customer_email: customerEmail,
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+          metadata: {
+            orderId: newOrder[0].id.toString(),
+            orderNumber: orderNumber,
+            eventId: eventId.toString(),
+            ticketTypeId: ticketTypeId.toString(),
+            quantity: quantity.toString(),
+            ...metadata
+          },
+          expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutos
+        });
+      }
+
+      // Actualizar orden con ID de sesión
       await db
         .update(orders)
         .set({
@@ -154,7 +181,11 @@ export class PaymentService {
         sessionUrl: session.url,
         orderId: newOrder[0].id,
         orderNumber: orderNumber,
-        totalAmount: totalAmount
+        totalAmount: totalAmount,
+          subtotal,
+          platformFee,
+          stripeFee,
+        mode: this.testMode ? 'test' : 'live'
       };
 
     } catch (error) {
