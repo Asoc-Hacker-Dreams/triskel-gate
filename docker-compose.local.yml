@@ -1,0 +1,112 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: xops-local-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-triskell_gate}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [xops_local]
+
+  triskell:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: xops-local-triskell
+    env_file:
+      - .env.local
+    environment:
+      PORT: 3002
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-triskell_gate}
+      AGORAPASS_API_URL: http://agorapass-backend:8080/api/v1
+      MAIN_APP_URL: https://www.xops.local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3002:3002"
+    networks: [xops_local]
+
+  agorapass-backend:
+    build:
+      context: /Users/specter/Repos/HSM/AgoraPass-monorepo/apps/api-gateway
+      dockerfile: Dockerfile
+    container_name: xops-local-agorapass-api
+    env_file:
+      - .env.local
+    environment:
+      PORT: 8080
+      DATABASE_URL: ${AGORAPASS_DATABASE_URL:-postgres://postgres:postgres@postgres:5432/agorapass?sslmode=disable}
+      CORS_ALLOWED_ORIGINS: https://www.xops.local,https://pass.xops.local,https://admin.xops.local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks: [xops_local]
+
+  agorapass-frontend:
+    build:
+      context: /Users/specter/Repos/HSM/AgoraPass-monorepo/apps/frontend
+      dockerfile: Dockerfile
+    container_name: xops-local-agorapass-front
+    depends_on:
+      - agorapass-backend
+    networks: [xops_local]
+
+  xopsconference:
+    build:
+      context: /Users/specter/Repos/HSM/xopsmainpage-react
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: https://api.xops.local
+    container_name: xops-local-xopsfront
+    depends_on:
+      - triskell
+    ports:
+      - "127.0.0.1:3005:80"
+    networks: [xops_local]
+
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: xops-local-caddy
+    depends_on:
+      - triskell
+      - agorapass-backend
+      - agorapass-frontend
+      - xopsconference
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /Users/specter/.openclaw/workspace/projects/X-Ops/e2e-local-sprint/day0/certs:/etc/caddy/certs:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [xops_local]
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: xops-local-mailpit
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    networks: [xops_local]
+
+networks:
+  xops_local:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

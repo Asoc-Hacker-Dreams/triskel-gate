@@ -1,9 +1,7 @@
-import { sqliteTable, text, real, integer, index } from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
+import { pgTable, text, real, integer, boolean, timestamp, index, serial } from "drizzle-orm/pg-core";
 
-// Tabla de organizadores
-export const organizers = sqliteTable("organizers", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const organizers = pgTable("organizers", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   phone: text("phone"),
@@ -13,32 +11,30 @@ export const organizers = sqliteTable("organizers", {
   currency: text("currency").default("EUR"),
   payoutMethod: text("payout_method"),
   payoutDetails: text("payout_details"),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
-  updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`)
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
 });
 
-// Tabla de eventos
-export const events = sqliteTable("events", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const events = pgTable("events", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description"),
   location: text("location").notNull(),
-  startDate: text("start_date").notNull(),
-  endDate: text("end_date").notNull(),
+  startDate: timestamp("start_date", { withTimezone: true }).notNull(),
+  endDate: timestamp("end_date", { withTimezone: true }).notNull(),
   maxTickets: integer("max_tickets").default(1000),
   status: text("status").default("active"),
-  isAgorapassIntegrated: integer("is_agorapass_integrated", { mode: "boolean" }).default(false),
+  isAgorapassIntegrated: boolean("is_agorapass_integrated").default(false),
   agorapassEventId: text("agorapass_event_id"),
   platformFeePercent: real("platform_fee_percent").default(3.0),
   organizerId: integer("organizer_id").references(() => organizers.id),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
-  updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`)
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
 });
 
-// Tabla de tipos de tickets
-export const ticketTypes = sqliteTable("ticket_types", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const ticketTypes = pgTable("ticket_types", {
+  id: serial("id").primaryKey(),
   eventId: integer("event_id").notNull().references(() => events.id),
   name: text("name").notNull(),
   description: text("description"),
@@ -46,15 +42,14 @@ export const ticketTypes = sqliteTable("ticket_types", {
   stripeProductId: text("stripe_product_id"),
   stripePriceId: text("stripe_price_id"),
   maxQuantity: integer("max_quantity").default(100),
-  saleStartDate: text("sale_start_date").notNull(),
-  saleEndDate: text("sale_end_date").notNull(),
-  isActive: integer("is_active", { mode: "boolean" }).default(true),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`)
+  saleStartDate: timestamp("sale_start_date", { withTimezone: true }).notNull(),
+  saleEndDate: timestamp("sale_end_date", { withTimezone: true }).notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
 });
 
-// Tabla de órdenes
-export const orders = sqliteTable("orders", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const orders = pgTable("orders", {
+  id: serial("id").primaryKey(),
   orderNumber: text("order_number").notNull().unique(),
   eventId: integer("event_id").notNull().references(() => events.id),
   customerEmail: text("customer_email").notNull(),
@@ -69,17 +64,16 @@ export const orders = sqliteTable("orders", {
   stripeSessionId: text("stripe_session_id"),
   stripePaymentIntentId: text("stripe_payment_intent_id"),
   notes: text("notes"),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
-  updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`)
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
 }, (table) => ({
   emailIdx: index("orders_email_idx").on(table.customerEmail),
   statusIdx: index("orders_status_idx").on(table.status),
   orderNumberIdx: index("orders_order_number_idx").on(table.orderNumber)
 }));
 
-// Tabla de tickets
-export const tickets = sqliteTable("tickets", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const tickets = pgTable("tickets", {
+  id: serial("id").primaryKey(),
   uuid: text("uuid").notNull().unique(),
   orderId: integer("order_id").notNull().references(() => orders.id),
   ticketTypeId: integer("ticket_type_id").notNull().references(() => ticketTypes.id),
@@ -89,13 +83,13 @@ export const tickets = sqliteTable("tickets", {
   holderName: text("holder_name"),
   holderEmail: text("holder_email"),
   price: real("price").notNull(),
-  isUsed: integer("is_used", { mode: "boolean" }).default(false),
-  usedAt: text("used_at"),
+  isUsed: boolean("is_used").default(false),
+  usedAt: timestamp("used_at", { withTimezone: true }),
   usedBy: text("used_by"),
   checkInLocation: text("checkin_location"),
   notes: text("notes"),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
-  updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`)
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
 }, (table) => ({
   uuidIdx: index("tickets_uuid_idx").on(table.uuid),
   qrCodeIdx: index("tickets_qr_code_idx").on(table.qrCode),
@@ -105,67 +99,62 @@ export const tickets = sqliteTable("tickets", {
   eventIdx: index("tickets_event_idx").on(table.eventId)
 }));
 
-// Tabla de staff (Federated Auth — passwordHash is deprecated, kept for migration)
-export const staff = sqliteTable("staff", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const staff = pgTable("staff", {
+  id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
-  passwordHash: text("password_hash"),  // DEPRECATED — moving to Supabase Auth
-  authProvider: text("auth_provider").default("supabase"),  // supabase | legacy
-  authProviderId: text("auth_provider_id"),  // Supabase user UUID
+  passwordHash: text("password_hash"),
+  authProvider: text("auth_provider").default("supabase"),
+  authProviderId: text("auth_provider_id"),
   role: text("role").default("staff"),
   permissions: text("permissions"),
-  isActive: integer("is_active", { mode: "boolean" }).default(true),
-  lastLoginAt: text("last_login_at"),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
-  updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`)
+  isActive: boolean("is_active").default(true),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
 });
 
-// Tabla de logs de validación
-export const validationLogs = sqliteTable("validation_logs", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const validationLogs = pgTable("validation_logs", {
+  id: serial("id").primaryKey(),
   ticketId: integer("ticket_id").notNull().references(() => tickets.id),
   staffId: integer("staff_id").references(() => staff.id),
   action: text("action").notNull(),
   location: text("location"),
   deviceInfo: text("device_info"),
   ipAddress: text("ip_address"),
-  success: integer("success", { mode: "boolean" }).notNull(),
+  success: boolean("success").notNull(),
   errorMessage: text("error_message"),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`)
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
 });
 
-// Tabla de configuraciones
-export const settings = sqliteTable("settings", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const settings = pgTable("settings", {
+  id: serial("id").primaryKey(),
   key: text("key").notNull().unique(),
   value: text("value").notNull(),
   category: text("category").default("general"),
   description: text("description"),
-  isPublic: integer("is_public", { mode: "boolean" }).default(false),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
-  updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`)
+  isPublic: boolean("is_public").default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
 });
 
-// Tabla de estadísticas de ventas
-export const salesStats = sqliteTable("sales_stats", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const salesStats = pgTable("sales_stats", {
+  id: serial("id").primaryKey(),
   eventId: integer("event_id").notNull().references(() => events.id),
-  date: text("date").notNull(),
+  date: timestamp("date", { withTimezone: true }).notNull(),
   ticketsSold: integer("tickets_sold").default(0),
   grossRevenue: real("gross_revenue").default(0),
   platformFees: real("platform_fees").default(0),
   stripeFees: real("stripe_fees").default(0),
   netRevenue: real("net_revenue").default(0),
   refunds: real("refunds").default(0),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`)
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
 }, (table) => ({
   eventDateIdx: index("sales_stats_event_date_idx").on(table.eventId, table.date)
 }));
 
-// Tabla de comisiones de plataforma
-export const platformFees = sqliteTable("platform_fees", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const platformFees = pgTable("platform_fees", {
+  id: serial("id").primaryKey(),
   eventId: integer("event_id").notNull().references(() => events.id),
   orderId: integer("order_id").references(() => orders.id),
   feeType: text("fee_type").notNull(),
@@ -174,22 +163,21 @@ export const platformFees = sqliteTable("platform_fees", {
   feeAmount: real("fee_amount").notNull(),
   currency: text("currency").default("EUR"),
   status: text("status").default("pending"),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
-  updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`)
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
 }, (table) => ({
   eventIdIdx: index("platform_fees_event_idx").on(table.eventId),
   orderIdIdx: index("platform_fees_order_idx").on(table.orderId),
   statusIdx: index("platform_fees_status_idx").on(table.status)
 }));
 
-// Tabla de facturas
-export const invoices = sqliteTable("invoices", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
   invoiceNumber: text("invoice_number").notNull().unique(),
   organizerId: integer("organizer_id").notNull().references(() => organizers.id),
   eventId: integer("event_id").references(() => events.id),
-  periodStart: text("period_start").notNull(),
-  periodEnd: text("period_end").notNull(),
+  periodStart: timestamp("period_start", { withTimezone: true }).notNull(),
+  periodEnd: timestamp("period_end", { withTimezone: true }).notNull(),
   subtotal: real("subtotal").notNull(),
   platformFees: real("platform_fees").notNull(),
   stripeFees: real("stripe_fees").notNull(),
@@ -197,12 +185,12 @@ export const invoices = sqliteTable("invoices", {
   totalToPay: real("total_to_pay").notNull(),
   currency: text("currency").default("EUR"),
   status: text("status").default("draft"),
-  paidAt: text("paid_at"),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
   paymentMethod: text("payment_method"),
   pdfUrl: text("pdf_url"),
   notes: text("notes"),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
-  updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`)
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
 }, (table) => ({
   organizerIdx: index("invoices_organizer_idx").on(table.organizerId),
   eventIdx: index("invoices_event_idx").on(table.eventId),
@@ -210,20 +198,19 @@ export const invoices = sqliteTable("invoices", {
   periodIdx: index("invoices_period_idx").on(table.periodStart, table.periodEnd)
 }));
 
-// Tabla de suscripciones (Stripe Billing)
-export const subscriptions = sqliteTable("subscriptions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
   organizerId: integer("organizer_id").notNull().references(() => organizers.id),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
-  planId: text("plan_id").notNull().default("free"),   // free | pro | enterprise
+  planId: text("plan_id").notNull().default("free"),
   planName: text("plan_name").default("Free"),
-  status: text("status").default("active"),  // active | past_due | canceled | trialing
-  currentPeriodStart: text("current_period_start"),
-  currentPeriodEnd: text("current_period_end"),
-  cancelAtPeriodEnd: integer("cancel_at_period_end", { mode: "boolean" }).default(false),
-  createdAt: text("created_at").notNull().default(sql`(current_timestamp)`),
-  updatedAt: text("updated_at").notNull().default(sql`(current_timestamp)`)
+  status: text("status").default("active"),
+  currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
 }, (table) => ({
   organizerIdx: index("subscriptions_organizer_idx").on(table.organizerId),
   stripeSubIdx: index("subscriptions_stripe_sub_idx").on(table.stripeSubscriptionId)

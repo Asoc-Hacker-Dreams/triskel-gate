@@ -1,0 +1,39 @@
+{
+  auto_https off
+}
+
+(common_headers) {
+  header {
+    X-Content-Type-Options nosniff
+    X-Frame-Options SAMEORIGIN
+    Referrer-Policy strict-origin-when-cross-origin
+  }
+  log {
+    output stdout
+    format json
+  }
+}
+
+www.xops.local {
+  tls /etc/caddy/certs/www.xops.local+3.pem /etc/caddy/certs/www.xops.local+3-key.pem
+  import common_headers
+  reverse_proxy xopsconference:80
+}
+
+api.xops.local {
+  tls /etc/caddy/certs/www.xops.local+3.pem /etc/caddy/certs/www.xops.local+3-key.pem
+  import common_headers
+  reverse_proxy triskell:3002
+}
+
+pass.xops.local {
+  tls /etc/caddy/certs/www.xops.local+3.pem /etc/caddy/certs/www.xops.local+3-key.pem
+  import common_headers
+  reverse_proxy agorapass-frontend:80
+}
+
+admin.xops.local {
+  tls /etc/caddy/certs/www.xops.local+3.pem /etc/caddy/certs/www.xops.local+3-key.pem
+  import common_headers
+  reverse_proxy agorapass-backend:8080
+}
