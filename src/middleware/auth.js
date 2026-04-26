@@ -227,8 +227,8 @@ export class AuthService {
       await db
         .update(staff)
         .set({
-          lastLoginAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          lastLoginAt: new Date(),
+          updatedAt: new Date()
         })
         .where(eq(staff.id, userData.id));
 
@@ -300,8 +300,8 @@ export class AuthService {
           role,
           permissions: JSON.stringify(permissions),
           isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          createdAt: new Date(),
+          updatedAt: new Date()
         })
         .returning();
 
