@@ -7,7 +7,7 @@ import ticketValidationService from '../services/ticketValidation.js';
 import paymentService from '../services/payment.js';
 import authMiddleware from '../middleware/auth.js';
 import { db } from '../db/connection.js';
-import { events, ticketTypes } from '../db/schema.js';
+import { events, ticketTypes, orders } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
 const router = express.Router();
@@ -419,6 +419,40 @@ router.get('/info', (req, res) => {
       ]
     }
   });
+});
+
+// Checkout session status (for frontend polling after Stripe redirect)
+// MOCK: Returns 'paid' after 3s delay to simulate webhook propagation
+router.get('/checkout/sessions/:sessionId/status', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    if (!sessionId) {
+      return res.status(400).json({ success: false, error: 'MISSING_SESSION_ID' });
+    }
+    // Check if order already exists and is completed
+    const existingOrder = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.stripeSessionId, sessionId))
+      .limit(1);
+    if (existingOrder.length > 0 && existingOrder[0].status === 'completed') {
+      return res.json({ success: true, sessionId, status: 'paid', orderId: existingOrder[0].id });
+    }
+    // MOCK: Simulate Stripe webhook delay (3 seconds)
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    // For demo purposes, always return 'paid' if no completed order exists
+    // In production, this would poll Stripe API: await stripe.checkout.sessions.retrieve(sessionId)
+    return res.json({
+      success: true,
+      sessionId,
+      status: 'paid',
+      mock: true,
+      message: 'Mock mode: simulating webhook propagation delay'
+    });
+  } catch (error) {
+    console.error('Error checking session status:', error);
+    res.status(500).json({ success: false, error: 'INTERNAL_ERROR' });
+  }
 });
 
 export default router;
