@@ -411,7 +411,8 @@ router.get('/info', (req, res) => {
       payment: [
         'POST /api/payment/create-session - Crear sesión de pago',
         'POST /api/payment/webhook - Webhook de Stripe',
-        'POST /api/payment/refund - Procesar reembolso'
+        'POST /api/payment/refund - Procesar reembolso',
+        'GET /api/checkout/sessions/:sessionId/status - Estado de sesión de pago'
       ],
       system: [
         'GET /api/health - Estado del sistema',
@@ -422,14 +423,14 @@ router.get('/info', (req, res) => {
 });
 
 // Checkout session status (for frontend polling after Stripe redirect)
-// MOCK: Returns 'paid' after 3s delay to simulate webhook propagation
 router.get('/checkout/sessions/:sessionId/status', async (req, res) => {
   try {
     const { sessionId } = req.params;
     if (!sessionId) {
       return res.status(400).json({ success: false, error: 'MISSING_SESSION_ID' });
     }
-    // Check if order already exists and is completed
+
+    // Fast path: check if order already exists and is completed in our DB
     const existingOrder = await db
       .select()
       .from(orders)
@@ -438,19 +439,46 @@ router.get('/checkout/sessions/:sessionId/status', async (req, res) => {
     if (existingOrder.length > 0 && existingOrder[0].status === 'completed') {
       return res.json({ success: true, sessionId, status: 'paid', orderId: existingOrder[0].id });
     }
-    // MOCK: Simulate Stripe webhook delay (3 seconds)
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    // For demo purposes, always return 'paid' if no completed order exists
-    // In production, this would poll Stripe API: await stripe.checkout.sessions.retrieve(sessionId)
+
+    // Retrieve real session status from Stripe
+    if (!paymentService.stripe) {
+      return res.status(503).json({
+        success: false,
+        error: 'STRIPE_NOT_CONFIGURED',
+        message: 'Stripe is not configured (test mode or missing STRIPE_SECRET_KEY)'
+      });
+    }
+
+    const session = await paymentService.stripe.checkout.sessions.retrieve(sessionId);
+
     return res.json({
       success: true,
-      sessionId,
-      status: 'paid',
-      mock: true,
-      message: 'Mock mode: simulating webhook propagation delay'
+      data: {
+        id: session.id,
+        status: session.status,
+        payment_status: session.payment_status,
+        customer_email: session.customer_details?.email || session.customer_email,
+        amount_total: session.amount_total
+      }
     });
   } catch (error) {
     console.error('Error checking session status:', error);
+
+    if (error.type === 'StripeInvalidRequestError' && error.statusCode === 404) {
+      return res.status(404).json({
+        success: false,
+        error: 'SESSION_NOT_FOUND',
+        message: 'Checkout session not found'
+      });
+    }
+    if (error.type?.startsWith('Stripe')) {
+      return res.status(502).json({
+        success: false,
+        error: 'STRIPE_ERROR',
+        message: 'Error communicating with Stripe'
+      });
+    }
+
     res.status(500).json({ success: false, error: 'INTERNAL_ERROR' });
   }
 });
