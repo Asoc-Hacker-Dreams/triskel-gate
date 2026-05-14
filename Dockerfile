@@ -28,11 +28,11 @@ RUN mkdir -p logs public/qr-codes && chown -R triskell:nodejs /app
 USER triskell
 
 ENV NODE_ENV=production
-ENV PORT=3002
+ENV PORT=3001
 
-EXPOSE 3002
+EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=5 \
-  CMD curl -f http://localhost:3002/health || exit 1
+  CMD curl -f http://localhost:3001/health || exit 1
 
 CMD ["dumb-init", "node", "src/index.js"]
