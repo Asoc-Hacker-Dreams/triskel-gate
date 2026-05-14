@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import jwt from 'jsonwebtoken';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -13,9 +14,11 @@ global.__filename = __filename;
 // Variables de entorno para testing
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-jwt-secret-for-testing-only';
-process.env.DATABASE_URL = ':memory:'; // Base de datos en memoria para tests
-process.env.PORT = '0'; // Puerto aleatorio para tests
-process.env.LOG_LEVEL = 'error'; // Solo errores en tests
+process.env.DATABASE_URL = ':memory:';
+process.env.PORT = '0';
+process.env.LOG_LEVEL = 'error';
+process.env.PAYMENT_TEST_MODE = 'true';
+process.env.QR_SECRET = 'test-qr-secret';
 
 // Mock para base de datos de testing
 const testDbPath = path.join(__dirname, '../data/test.db');
@@ -62,40 +65,26 @@ jest.unstable_mockModule('nodemailer', () => ({
   }))
 }));
 
-// Mock para Stripe
-jest.unstable_mockModule('stripe', () => ({
-  default: jest.fn(() => ({
-    paymentIntents: {
-      create: jest.fn().mockResolvedValue({
-        id: 'pi_test_123',
-        client_secret: 'pi_test_123_secret_test'
-      }),
-      retrieve: jest.fn().mockResolvedValue({
-        id: 'pi_test_123',
-        status: 'succeeded'
-      })
-    }
-  }))
-}));
-
 // Utilidades para pruebas
 global.testUtils = {
-  // Generar token JWT de prueba
   generateTestToken: (payload = {}) => {
-    const jwt = require('jsonwebtoken');
+    const hasExp = 'exp' in payload;
+    const options = hasExp ? {} : { expiresIn: '1h' };
     return jwt.sign(
-      { 
-        id: 1, 
-        username: 'testuser', 
+      {
+        id: 1,
+        email: 'test@example.com',
         role: 'admin',
-        ...payload 
+        ...payload
       },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      options
     );
   },
 
-  // Crear datos de prueba comunes
+  // Known bcrypt hash of "password123" with 12 rounds
+  testPasswordHash: '$2a$12$wlpI.7tuJvKTl0s9/QKIce5HvzmhUbWYgacu0YdGq0ev93Hd4HVri',
+
   mockEvent: {
     id: 1,
     name: 'Test Event',
@@ -108,20 +97,22 @@ global.testUtils = {
 
   mockTicket: {
     id: 1,
-    code: 'TEST-2025-001',
+    uuid: 'test-uuid-001',
+    ticketNumber: 'T-TEST-001',
+    qrCode: 'dGVzdC1xci1jb2Rl',
     eventId: 1,
     ticketTypeId: 1,
     orderId: 1,
     holderName: 'Test User',
     holderEmail: 'test@example.com',
     isUsed: false,
-    qrCodePath: '/test/qr.png'
+    price: 50.00
   },
 
   mockUser: {
     id: 1,
-    username: 'testuser',
     email: 'test@example.com',
+    name: 'Test User',
     role: 'admin',
     isActive: true
   }
