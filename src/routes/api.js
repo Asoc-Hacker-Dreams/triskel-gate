@@ -8,6 +8,7 @@ import paymentService from '../services/payment.js';
 import authMiddleware from '../middleware/auth.js';
 import { subscribe as pushSubscribe, VAPID_PUBLIC } from '../services/pushNotification.js';
 import { db, pool } from '../db/connection.js';
+import { upsertContact } from '../services/hubspot.js';
 import { events, ticketTypes, orders } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
@@ -605,6 +606,30 @@ router.put('/consents',
                       method     = 'api',
                       updated_at = now()
       `, [userId, email, consent_type, granted, grantedAt, req.ip, req.headers['user-agent']]);
+
+      // Sync to HubSpot if marketing or newsletter consent changed
+      if (consent_type === 'marketing' || consent_type === 'newsletters') {
+        try {
+          const { rows: allConsents } = await pool.query(
+            'SELECT consent_type, granted FROM user_consents WHERE user_id = $1',
+            [userId]
+          );
+          const marketing = allConsents.find(c => c.consent_type === 'marketing')?.granted || false;
+          const newsletters = allConsents.find(c => c.consent_type === 'newsletters')?.granted || false;
+          if (marketing || newsletters) {
+            upsertContact({
+              email,
+              firstname: req.user.name?.split(' ')[0],
+              lastname: req.user.name?.split(' ').slice(1).join(' ') || undefined,
+              marketingConsent: marketing,
+              newsletterConsent: newsletters,
+              consentDate: new Date(),
+            }).catch(err => console.error('⚠️ HubSpot sync error:', err.message));
+          }
+        } catch (err) {
+          console.error('⚠️ HubSpot sync error (non-blocking):', err.message);
+        }
+      }
 
       res.json({ success: true, data: { consent_type, granted } });
     } catch (error) {

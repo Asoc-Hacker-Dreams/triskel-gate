@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
+import { upsertContact } from './hubspot.js';
 
 export class PaymentService {
   constructor() {
@@ -279,6 +280,16 @@ export class PaymentService {
           } catch (err) {
             console.error('⚠️ Consent record error (non-blocking):', err.message);
           }
+        }
+
+        // Sync to HubSpot if marketing or newsletter opted in
+        if (newsletterConsent || marketingConsent) {
+          upsertContact({
+            email: holderEmail,
+            marketingConsent,
+            newsletterConsent,
+            consentDate: new Date(),
+          }).catch(err => console.error('⚠️ HubSpot sync error (non-blocking):', err.message));
         }
       }
 
