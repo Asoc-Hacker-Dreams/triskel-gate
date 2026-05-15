@@ -186,3 +186,56 @@
     flex-direction: column;
   }
 }
+
+/* Magic Link Form */
+.login-magic-form {
+  margin-bottom: 1rem;
+}
+
+.login-magic-form label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.login-magic-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.login-magic-row input {
+  flex: 1;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.login-magic-row input:focus {
+  border-color: #f05537;
+}
+
+.login-magic-sent {
+  text-align: center;
+  padding: 1.5rem 0;
+  color: var(--text-primary, #111);
+}
+
+.login-magic-sent svg {
+  color: #f05537;
+  margin-bottom: 0.75rem;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #f05537;
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  margin-top: 0.5rem;
+}
