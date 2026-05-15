@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { db } from '../db/connection.js';
+import { db, pool } from '../db/connection.js';
 import { orders, tickets, events, ticketTypes, salesStats } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
@@ -253,6 +253,31 @@ export class PaymentService {
       // Fire-and-forget: sync tickets to AgoraPass (non-blocking)
       this.syncTicketsToAgoraPass(createdTickets, order[0], eventId, ticketTypeId)
         .catch(err => console.error('⚠️ AgoraPass batch sync error:', err.message));
+
+      // Record GDPR consent choices from Stripe session metadata
+      const newsletterConsent = sessionData.metadata?.newsletter_consent === 'true';
+      const marketingConsent = sessionData.metadata?.marketing_consent === 'true';
+      const holderEmail = sessionData.metadata?.buyer_email || sessionData.customer_details?.email;
+
+      if (holderEmail) {
+        const consentTypes = [
+          { type: 'essential', granted: true },
+          { type: 'newsletters', granted: newsletterConsent },
+          { type: 'marketing', granted: marketingConsent },
+        ];
+        for (const { type, granted } of consentTypes) {
+          try {
+            await pool.query(
+              `INSERT INTO user_consents (email, consent_type, granted, granted_at, method)
+               VALUES ($1, $2, $3, $4, 'signup')
+               ON CONFLICT (user_id, consent_type) WHERE user_id IS NOT NULL DO NOTHING`,
+              [holderEmail, type, granted, granted ? new Date() : null]
+            );
+          } catch (err) {
+            console.error('⚠️ Consent record error (non-blocking):', err.message);
+          }
+        }
+      }
 
       return {
         success: true,

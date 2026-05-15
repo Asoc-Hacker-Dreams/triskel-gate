@@ -8,6 +8,7 @@ import CreateEvent from './pages/CreateEvent';
 import Settings from './pages/Settings';
 import CheckIn from './pages/CheckIn';
 import Login from './pages/Login';
+import Checkout from './pages/Checkout';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import CookiePolicy from './pages/CookiePolicy';
 import TermsOfService from './pages/TermsOfService';
@@ -51,6 +52,7 @@ function App() {
         <PublicFooter />
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/cookies" element={<CookiePolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
