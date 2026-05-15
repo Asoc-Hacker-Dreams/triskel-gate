@@ -26,18 +26,18 @@ async function upsertContact(props) {
     email: props.email,
     ...(props.firstname && { firstname: props.firstname }),
     ...(props.lastname && { lastname: props.lastname }),
-    xops_marketing_consent: String(!!props.marketingConsent),
-    xops_newsletter_consent: String(!!props.newsletterConsent),
-    xops_consent_date: props.consentDate
+    hsm_marketing_consent: String(!!props.marketingConsent),
+    hsm_newsletter_consent: String(!!props.newsletterConsent),
+    hsm_consent_date: props.consentDate
       ? new Date(props.consentDate).toISOString()
       : new Date().toISOString(),
-    xops_source: 'triskelgate',
-    xops_community_role: 'attendee',
-    ...(props.memberSince && { xops_member_since: new Date(props.memberSince).toISOString() }),
-    ...(props.eventName && { xops_last_event_name: props.eventName }),
-    ...(props.eventDate && { xops_last_event_date: new Date(props.eventDate).toISOString() }),
-    ...(props.ticketTier && { xops_ticket_tier: props.ticketTier.toLowerCase() }),
-    ...(props.triskelgateId && { xops_triskelgate_id: String(props.triskelgateId) }),
+    hsm_source: 'triskelgate',
+    hsm_community_role: 'attendee',
+    ...(props.memberSince && { hsm_member_since: new Date(props.memberSince).toISOString() }),
+    ...(props.eventName && { hsm_last_event_name: props.eventName }),
+    ...(props.eventDate && { hsm_last_event_date: new Date(props.eventDate).toISOString() }),
+    ...(props.ticketTier && { hsm_ticket_tier: props.ticketTier.toLowerCase() }),
+    ...(props.triskelgateId && { hsm_triskelgate_id: String(props.triskelgateId) }),
   };
 
   const body = JSON.stringify({
