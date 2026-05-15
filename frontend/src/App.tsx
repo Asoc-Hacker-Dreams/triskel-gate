@@ -8,6 +8,9 @@ import CreateEvent from './pages/CreateEvent';
 import Settings from './pages/Settings';
 import CheckIn from './pages/CheckIn';
 import Login from './pages/Login';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import CookiePolicy from './pages/CookiePolicy';
+import TermsOfService from './pages/TermsOfService';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
@@ -33,6 +36,9 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/cookies" element={<CookiePolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
 
           <Route
             path="/"

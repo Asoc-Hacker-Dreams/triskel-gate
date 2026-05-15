@@ -63,6 +63,11 @@ const Layout: React.FC = () => {
         </nav>
 
         <div className="sidebar-footer">
+          <div style={{ padding: '0.5rem 0.75rem', marginBottom: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <a href="/privacy" style={{ display: 'block', color: '#6b7280', fontSize: '0.72rem', textDecoration: 'none', marginBottom: '0.2rem' }}>Política de Privacidad</a>
+            <a href="/cookies" style={{ display: 'block', color: '#6b7280', fontSize: '0.72rem', textDecoration: 'none', marginBottom: '0.2rem' }}>Política de Cookies</a>
+            <a href="/terms" style={{ display: 'block', color: '#6b7280', fontSize: '0.72rem', textDecoration: 'none' }}>Términos de Servicio</a>
+          </div>
           <button
             className="btn btn-ghost"
             style={{ width: '100%', justifyContent: 'flex-start' }}
