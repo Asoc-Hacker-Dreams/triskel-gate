@@ -80,6 +80,7 @@ const Checkout: React.FC = () => {
           buyer_email: customerEmail,
           newsletter_consent: String(newsletterConsent),
           marketing_consent: String(marketingConsent),
+          user_agent: navigator.userAgent,
         },
       });
 

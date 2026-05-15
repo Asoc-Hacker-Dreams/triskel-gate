@@ -260,6 +260,9 @@ export class PaymentService {
       const holderEmail = sessionData.metadata?.buyer_email || sessionData.customer_details?.email;
 
       if (holderEmail) {
+        // ip_address and user_agent passed via Stripe session metadata from checkout form
+        const ipAddress = sessionData.metadata?.ip_address || null;
+        const userAgent = sessionData.metadata?.user_agent || null;
         const consentTypes = [
           { type: 'essential', granted: true },
           { type: 'newsletters', granted: newsletterConsent },
@@ -268,10 +271,10 @@ export class PaymentService {
         for (const { type, granted } of consentTypes) {
           try {
             await pool.query(
-              `INSERT INTO user_consents (email, consent_type, granted, granted_at, method)
-               VALUES ($1, $2, $3, $4, 'signup')
+              `INSERT INTO user_consents (email, consent_type, granted, granted_at, ip_address, user_agent, method)
+               VALUES ($1, $2, $3, $4, $5, $6, 'signup')
                ON CONFLICT (user_id, consent_type) WHERE user_id IS NOT NULL DO NOTHING`,
-              [holderEmail, type, granted, granted ? new Date() : null]
+              [holderEmail, type, granted, granted ? new Date() : null, ipAddress, userAgent]
             );
           } catch (err) {
             console.error('⚠️ Consent record error (non-blocking):', err.message);
