@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import CookieBanner from './components/CookieBanner';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Events from './pages/Events';
@@ -50,6 +51,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      <CookieBanner />
     </AuthProvider>
   );
 }
