@@ -1,0 +1,27 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1776583451494,
+      "tag": "0000_parallel_alex_wilder",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1745654400000,
+      "tag": "0002_sophia_event_bridge",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1747310361000,
+      "tag": "0003_gdpr_user_consents",
+      "breakpoints": true
+    }
+  ]
+}

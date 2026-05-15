@@ -1,4 +1,4 @@
-import { pgTable, text, real, integer, boolean, timestamp, index, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, real, integer, boolean, timestamp, index, uniqueIndex, serial } from "drizzle-orm/pg-core";
 
 export const organizers = pgTable("organizers", {
   id: serial("id").primaryKey(),
@@ -214,4 +214,22 @@ export const subscriptions = pgTable("subscriptions", {
 }, (table) => ({
   organizerIdx: index("subscriptions_organizer_idx").on(table.organizerId),
   stripeSubIdx: index("subscriptions_stripe_sub_idx").on(table.stripeSubscriptionId)
+}));
+
+export const userConsents = pgTable("user_consents", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id"),
+  email: text("email").notNull(),
+  consentType: text("consent_type").notNull(),  // 'essential'|'analytics'|'marketing'|'newsletters'|'product_updates'|'partner_promos'
+  granted: boolean("granted").notNull().default(false),
+  grantedAt: timestamp("granted_at", { withTimezone: true }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  method: text("method").notNull(),  // 'signup'|'banner'|'profile'|'import'|'api'
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  emailIdx: index("idx_tg_consents_email").on(table.email),
+  userTypeIdx: uniqueIndex("idx_tg_consents_user_type").on(table.userId, table.consentType),
 }));
