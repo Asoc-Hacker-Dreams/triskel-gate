@@ -289,6 +289,9 @@ export class PaymentService {
             marketingConsent,
             newsletterConsent,
             consentDate: new Date(),
+            eventName: metadata.event_name || metadata.eventName || null,
+            ticketTier: metadata.ticket_tier || metadata.ticketTier || null,
+            triskelgateId: null,
           }).catch(err => console.error('⚠️ HubSpot sync error (non-blocking):', err.message));
         }
       }
