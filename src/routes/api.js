@@ -7,7 +7,7 @@ import ticketValidationService from '../services/ticketValidation.js';
 import paymentService from '../services/payment.js';
 import authMiddleware from '../middleware/auth.js';
 import { subscribe as pushSubscribe, VAPID_PUBLIC } from '../services/pushNotification.js';
-import { db } from '../db/connection.js';
+import { db, pool } from '../db/connection.js';
 import { events, ticketTypes, orders } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
@@ -529,6 +529,157 @@ router.post('/push/subscribe', authMiddleware, (req, res) => {
   if (!userId) return res.status(401).json({ error: 'user identity required' });
   pushSubscribe(userId, subscription);
   res.json({ success: true });
+});
+
+/**
+ * GDPR DATA SUBJECT RIGHTS (Art. 15-17)
+ */
+
+const ALLOWED_CONSENT_TYPES = ['analytics', 'marketing', 'newsletters', 'product_updates', 'partner_promos'];
+
+// Ensure user_consents table exists at startup
+pool.query(`
+  CREATE TABLE IF NOT EXISTS user_consents (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT,
+    email TEXT NOT NULL,
+    consent_type TEXT NOT NULL,
+    granted BOOLEAN NOT NULL DEFAULT false,
+    granted_at TIMESTAMPTZ,
+    revoked_at TIMESTAMPTZ,
+    ip_address TEXT,
+    user_agent TEXT,
+    method TEXT NOT NULL DEFAULT 'api',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (user_id, consent_type)
+  )
+`).catch(err => console.error('Could not ensure user_consents table:', err));
+
+// GET /api/consents — return authenticated user's consent records
+router.get('/consents', authMiddleware, async (req, res) => {
+  try {
+    const userId = String(req.user.id);
+    const result = await pool.query(
+      `SELECT consent_type, granted, granted_at, method, updated_at
+       FROM user_consents WHERE user_id = $1 ORDER BY consent_type`,
+      [userId]
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('Error fetching consents:', error);
+    res.status(500).json({ success: false, error: 'INTERNAL_ERROR', message: 'Error fetching consents' });
+  }
+});
+
+// PUT /api/consents — update a single consent preference
+router.put('/consents',
+  authMiddleware,
+  [
+    body('consent_type').notEmpty().withMessage('consent_type is required'),
+    body('granted').isBoolean().withMessage('granted must be a boolean'),
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { consent_type, granted } = req.body;
+      const userId = String(req.user.id);
+      const email = req.user.email;
+
+      if (consent_type === 'essential') {
+        return res.status(403).json({ success: false, error: 'FORBIDDEN', message: 'Essential consent cannot be modified' });
+      }
+      if (!ALLOWED_CONSENT_TYPES.includes(consent_type)) {
+        return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: `Invalid consent_type: ${consent_type}` });
+      }
+
+      const grantedAt = granted ? new Date().toISOString() : null;
+
+      await pool.query(`
+        INSERT INTO user_consents (user_id, email, consent_type, granted, granted_at, method, ip_address, user_agent)
+        VALUES ($1, $2, $3, $4, $5, 'api', $6, $7)
+        ON CONFLICT (user_id, consent_type)
+        DO UPDATE SET granted    = EXCLUDED.granted,
+                      granted_at = EXCLUDED.granted_at,
+                      revoked_at = CASE WHEN NOT EXCLUDED.granted THEN now() ELSE NULL END,
+                      method     = 'api',
+                      updated_at = now()
+      `, [userId, email, consent_type, granted, grantedAt, req.ip, req.headers['user-agent']]);
+
+      res.json({ success: true, data: { consent_type, granted } });
+    } catch (error) {
+      console.error('Error updating consent:', error);
+      res.status(500).json({ success: false, error: 'INTERNAL_ERROR', message: 'Error updating consent' });
+    }
+  }
+);
+
+// GET /api/data-export — export all personal data (Art. 15 portability)
+router.get('/data-export', authMiddleware, async (req, res) => {
+  try {
+    const userId = String(req.user.id);
+    const email = req.user.email;
+
+    const [userResult, consentsResult, ordersResult] = await Promise.all([
+      pool.query(
+        'SELECT id, email, name, role, created_at FROM staff WHERE id = $1',
+        [req.user.id]
+      ),
+      pool.query(
+        `SELECT consent_type, granted, granted_at, revoked_at, method, updated_at
+         FROM user_consents WHERE user_id = $1 ORDER BY consent_type`,
+        [userId]
+      ),
+      // Orders are financial records — included read-only, never deleted
+      pool.query(`
+        SELECT o.order_number, o.customer_name, o.customer_email,
+               o.total_amount, o.currency, o.status, o.created_at,
+               e.name AS event_name, e.start_date
+        FROM orders o
+        LEFT JOIN events e ON e.id = o.event_id
+        WHERE o.customer_email = $1
+        ORDER BY o.created_at DESC
+      `, [email]),
+    ]);
+
+    const bundle = {
+      profile: userResult.rows[0] || {},
+      consents: consentsResult.rows,
+      orders: ordersResult.rows,
+      exported_at: new Date().toISOString(),
+    };
+
+    res.setHeader('Content-Disposition', 'attachment; filename="data-export.json"');
+    res.json(bundle);
+  } catch (error) {
+    console.error('Error exporting data:', error);
+    res.status(500).json({ success: false, error: 'INTERNAL_ERROR', message: 'Error exporting data' });
+  }
+});
+
+// DELETE /api/account — right to erasure (Art. 17)
+// Anonymizes the staff record. Orders/tickets are retained (7-year financial records rule).
+router.delete('/account', authMiddleware, async (req, res) => {
+  try {
+    const userId = String(req.user.id);
+    const email = req.user.email;
+    const anonymizedEmail = `anonymized-${userId}@deleted.xopsalliance.com`;
+
+    await pool.query(
+      `UPDATE staff SET email = $1, name = 'Deleted User', updated_at = now() WHERE id = $2`,
+      [anonymizedEmail, req.user.id]
+    );
+
+    await pool.query(
+      'DELETE FROM user_consents WHERE user_id = $1 OR email = $2',
+      [userId, email]
+    );
+
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    res.status(500).json({ success: false, error: 'INTERNAL_ERROR', message: 'Error deleting account' });
+  }
 });
 
 export default router;

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { CreditCard, Shield, Zap, Crown, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CreditCard, Shield, Zap, Crown, CheckCircle, Lock } from 'lucide-react';
 import './Settings.css';
 
 interface PlanInfo {
@@ -65,7 +65,99 @@ const plans: PlanInfo[] = [
 ];
 
 const Settings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'billing' | 'account'>('billing');
+  const [activeTab, setActiveTab] = useState<'billing' | 'account' | 'privacy'>('billing');
+
+  // GDPR state
+  interface ConsentRecord {
+    consent_type: string;
+    granted: boolean;
+    granted_at: string | null;
+    method: string;
+    updated_at: string;
+  }
+  const CONSENT_LABELS: Record<string, string> = {
+    essential: 'Essential (required)',
+    analytics: 'Analytics',
+    marketing: 'Marketing',
+    newsletters: 'Newsletters',
+    product_updates: 'Product Updates',
+    partner_promos: 'Partner Promotions',
+  };
+
+  const [consents, setConsents] = useState<ConsentRecord[]>([]);
+  const [consentsLoading, setConsentsLoading] = useState(false);
+  const [gdprMsg, setGdprMsg] = useState('');
+  const [gdprErr, setGdprErr] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const getAuthHeaders = () => ({
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${localStorage.getItem('token') ?? ''}`,
+  });
+
+  const fetchConsents = async () => {
+    setConsentsLoading(true);
+    try {
+      const res = await fetch('/api/consents', { headers: getAuthHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setConsents(data.data ?? []);
+      }
+    } catch { /* non-blocking */ } finally {
+      setConsentsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'privacy') fetchConsents();
+  }, [activeTab]);
+
+  const updateConsent = async (consentType: string, granted: boolean) => {
+    setGdprMsg(''); setGdprErr('');
+    try {
+      const res = await fetch('/api/consents', {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ consent_type: consentType, granted }),
+      });
+      if (res.ok) {
+        setConsents(prev => prev.map(c => c.consent_type === consentType ? { ...c, granted } : c));
+        setGdprMsg('Preference saved.');
+      } else {
+        setGdprErr('Failed to save preference.');
+      }
+    } catch { setGdprErr('Connection error.'); }
+    setTimeout(() => { setGdprMsg(''); setGdprErr(''); }, 3000);
+  };
+
+  const exportData = async () => {
+    setExporting(true);
+    try {
+      const res = await fetch('/api/data-export', { headers: getAuthHeaders() });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'data-export.json'; a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        setGdprErr('Export failed.'); setTimeout(() => setGdprErr(''), 3000);
+      }
+    } catch { setGdprErr('Connection error.'); setTimeout(() => setGdprErr(''), 3000); }
+    finally { setExporting(false); }
+  };
+
+  const doDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/account', { method: 'DELETE', headers: getAuthHeaders() });
+      if (res.status === 204) { localStorage.clear(); window.location.href = '/login'; }
+      else { setGdprErr('Error deleting account.'); setTimeout(() => setGdprErr(''), 4000); }
+    } catch { setGdprErr('Connection error.'); setTimeout(() => setGdprErr(''), 4000); }
+    finally { setDeleting(false); setShowDeleteConfirm(false); }
+  };
 
   const handleSubscribe = async (planId: string) => {
     if (planId === 'free') return;
@@ -111,6 +203,12 @@ const Settings: React.FC = () => {
           onClick={() => setActiveTab('account')}
         >
           <Shield size={16} /> Account
+        </button>
+        <button
+          className={`settings-tab ${activeTab === 'privacy' ? 'active' : ''}`}
+          onClick={() => setActiveTab('privacy')}
+        >
+          <Lock size={16} /> Privacy & Datos
         </button>
       </div>
 
@@ -200,6 +298,97 @@ const Settings: React.FC = () => {
                 Microsoft
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'privacy' && (
+        <div className="account-content">
+          {/* Consent Management */}
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <h3>Communication Preferences</h3>
+            <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
+              Manage how we use your data. Essential cookies cannot be disabled.
+            </p>
+            {consentsLoading ? (
+              <p style={{ color: 'var(--color-text-secondary)' }}>Loading preferences…</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {consents.map(c => (
+                  <label key={c.consent_type} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: c.consent_type === 'essential' ? 'not-allowed' : 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={c.granted}
+                      disabled={c.consent_type === 'essential'}
+                      onChange={() => updateConsent(c.consent_type, !c.granted)}
+                    />
+                    <span>{CONSENT_LABELS[c.consent_type] ?? c.consent_type}</span>
+                  </label>
+                ))}
+                {consents.length === 0 && (
+                  <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>No consent records found.</p>
+                )}
+              </div>
+            )}
+            {gdprMsg && <p style={{ color: '#22c55e', marginTop: '0.5rem', fontSize: '0.875rem' }}>{gdprMsg}</p>}
+            {gdprErr && <p style={{ color: '#ef4444', marginTop: '0.5rem', fontSize: '0.875rem' }}>{gdprErr}</p>}
+          </div>
+
+          {/* Data Export */}
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <h3>Export Your Data</h3>
+            <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
+              Download a copy of all your personal data (GDPR Art. 15 – Right of Access).
+            </p>
+            <button
+              className="btn btn-secondary"
+              onClick={exportData}
+              disabled={exporting}
+              style={{ opacity: exporting ? 0.7 : 1 }}
+            >
+              {exporting ? 'Exporting…' : 'Download my data (JSON)'}
+            </button>
+          </div>
+
+          {/* Delete Account */}
+          <div className="card">
+            <h3 style={{ color: '#ef4444' }}>Delete Account</h3>
+            <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
+              Request erasure of your personal data (GDPR Art. 17). Financial records (orders/tickets) are retained
+              as required by law for 7 years.
+            </p>
+            {!showDeleteConfirm ? (
+              <button
+                className="btn btn-primary"
+                style={{ background: '#ef4444', borderColor: '#ef4444' }}
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                Request account deletion
+              </button>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <p style={{ color: '#ef4444', fontWeight: 600 }}>
+                  Are you sure? This action is irreversible. Your account will be anonymized.
+                </p>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    className="btn btn-primary"
+                    style={{ background: '#ef4444', borderColor: '#ef4444' }}
+                    onClick={doDeleteAccount}
+                    disabled={deleting}
+                  >
+                    {deleting ? 'Deleting…' : 'Yes, delete my account'}
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    disabled={deleting}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
