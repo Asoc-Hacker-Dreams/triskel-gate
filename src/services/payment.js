@@ -250,6 +250,10 @@ export class PaymentService {
         .from(tickets)
         .where(eq(tickets.orderId, orderId));
 
+      // Fire-and-forget: sync tickets to AgoraPass (non-blocking)
+      this.syncTicketsToAgoraPass(createdTickets, order[0], eventId, ticketTypeId)
+        .catch(err => console.error('⚠️ AgoraPass batch sync error:', err.message));
+
       return {
         success: true,
         orderId: orderId,
@@ -260,6 +264,46 @@ export class PaymentService {
     } catch (error) {
       console.error('Error procesando pago exitoso:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Syncs created tickets to AgoraPass (fire-and-forget)
+   */
+  async syncTicketsToAgoraPass(createdTickets, order, eventId, ticketTypeId) {
+    const AGORAPASS_API = process.env.AGORAPASS_API_URL || 'http://localhost:8080';
+
+    const event = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+    const ticketType = await db.select().from(ticketTypes).where(eq(ticketTypes.id, ticketTypeId)).limit(1);
+
+    for (const ticket of createdTickets) {
+      try {
+        const response = await fetch(`${AGORAPASS_API}/api/v1/tickets/sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            external_id: `tg-${ticket.id}`,
+            event_name: event[0]?.name || 'Unknown Event',
+            event_date: event[0]?.startDate || null,
+            event_location: event[0]?.location || '',
+            ticket_type: ticketType[0]?.name || 'General',
+            ticket_number: ticket.ticketNumber,
+            qr_code: ticket.qrCode || ticket.ticketNumber,
+            holder_email: order.customerEmail,
+            holder_name: order.customerName,
+            price: ticket.price || 0,
+            currency: event[0]?.currency || 'USD',
+            status: 'valid'
+          })
+        });
+        if (response.ok) {
+          console.log(`✅ Ticket ${ticket.ticketNumber} synced to AgoraPass`);
+        } else {
+          console.error(`⚠️ AgoraPass sync failed for ${ticket.ticketNumber}: ${response.status}`);
+        }
+      } catch (err) {
+        console.error('⚠️ AgoraPass sync error (non-blocking):', err.message);
+      }
     }
   }
 
