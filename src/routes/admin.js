@@ -4,6 +4,7 @@ import authMiddleware, { AuthService } from '../middleware/auth.js';
 import { db } from '../db/connection.js';
 import { events, ticketTypes, orders, tickets, staff, validationLogs, salesStats } from '../db/schema.js';
 import { eq, desc, count, sum, and, gte, lte, like } from 'drizzle-orm';
+import { syncEvent, cancelEvent } from '../services/hubspotEvents.js';
 
 const router = express.Router();
 
@@ -191,6 +192,9 @@ router.post('/events',
         .insert(events)
         .values(eventData)
         .returning();
+
+      // Sync to HubSpot Marketing Events (non-blocking)
+      syncEvent(newEvent[0]).catch(e => console.error('⚠️ HubSpot event sync error:', e.message));
 
       res.status(201).json({
         success: true,
@@ -658,5 +662,45 @@ router.get('/info', (req, res) => {
     ]
   });
 });
+
+// Manual trigger for no-show sync (also triggered automatically via cron in production)
+router.post('/events/sync-no-shows',
+  AuthService.requireRole(['admin']),
+  async (req, res) => {
+    try {
+      const { processNoShows } = await import('../services/noShowSync.js');
+      await processNoShows();
+      res.json({ success: true, message: 'No-show sync completed' });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+);
+
+// Update event + HubSpot sync
+router.put('/events/:id',
+  AuthService.requireRole(['admin']),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await db
+        .update(events)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(events.id, parseInt(id)))
+        .returning();
+      if (!updated.length) return res.status(404).json({ success: false, message: 'Evento no encontrado' });
+
+      if (req.body.status === 'cancelled') {
+        cancelEvent(id).catch(() => {});
+      } else {
+        syncEvent(updated[0]).catch(() => {});
+      }
+
+      res.json({ success: true, event: updated[0] });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Error actualizando evento' });
+    }
+  }
+);
 
 export default router;

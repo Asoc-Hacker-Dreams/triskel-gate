@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
 import { upsertContact } from './hubspot.js';
+import { registerAttendee } from './hubspotEvents.js';
 
 export class PaymentService {
   constructor() {
@@ -254,6 +255,14 @@ export class PaymentService {
       // Fire-and-forget: sync tickets to AgoraPass (non-blocking)
       this.syncTicketsToAgoraPass(createdTickets, order[0], eventId, ticketTypeId)
         .catch(err => console.error('⚠️ AgoraPass batch sync error:', err.message));
+
+      // Register as REGISTERED in HubSpot Marketing Events (non-blocking)
+      registerAttendee({
+        eventId: eventId,
+        email: order[0].customerEmail,
+        firstname: order[0].customerName?.split(' ')[0] || '',
+        lastname: order[0].customerName?.split(' ').slice(1).join(' ') || '',
+      }).catch(e => console.error('⚠️ HubSpot registration sync error:', e.message));
 
       // Record GDPR consent choices from Stripe session metadata
       const newsletterConsent = sessionData.metadata?.newsletter_consent === 'true';

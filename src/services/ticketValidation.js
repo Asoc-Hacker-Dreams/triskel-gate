@@ -3,6 +3,7 @@ import { tickets, events, ticketTypes, validationLogs, staff } from '../db/schem
 import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
 import agorapassIntegration from './agorapassIntegration.js';
+import { markAttended } from './hubspotEvents.js';
 
 export class TicketValidationService {
   
@@ -96,6 +97,14 @@ export class TicketValidationService {
           'triskell-gate'
         );
       }
+
+      // Mark as ATTENDED in HubSpot Marketing Events (non-blocking)
+      markAttended({
+        eventId: event.id,
+        email: ticket.holderEmail,
+        firstname: ticket.holderName?.split(' ')[0] || '',
+        lastname: ticket.holderName?.split(' ').slice(1).join(' ') || '',
+      }).catch(e => console.error('⚠️ HubSpot attendance sync error:', e.message));
 
       return {
         success: true,
