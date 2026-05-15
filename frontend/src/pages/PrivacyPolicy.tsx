@@ -100,7 +100,7 @@ const PrivacyPolicy: React.FC = () => {
         <h2 style={h2Style}>5. Plazos de Conservación</h2>
         <ul style={{ color: '#94a3b8', lineHeight: '1.9', paddingLeft: '1.5rem', marginBottom: '0.75rem' }}>
           <li><strong style={{ color: '#cbd5e1' }}>Registros de pago y facturación:</strong> 7 años, conforme a la obligación legal fiscal española (Ley 58/2003 General Tributaria).</li>
-          <li><strong style={{ color: '#cbd5e1' }}>Datos de eventos y asistencia:</strong> 2 años desde la fecha de celebración del evento.</li>
+          <li><strong style={{ color: '#cbd5e1' }}>Datos de eventos y asistencia:</strong> 5 años desde la fecha de celebración del evento.</li>
           <li><strong style={{ color: '#cbd5e1' }}>Datos de cuenta de usuario:</strong> durante la vigencia de la cuenta y hasta 30 días después de la solicitud de baja.</li>
         </ul>
         <p style={pStyle}>

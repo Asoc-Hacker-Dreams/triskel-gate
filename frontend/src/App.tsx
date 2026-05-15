@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import CookieBanner from './components/CookieBanner';
 import Layout from './components/Layout';
@@ -11,6 +11,20 @@ import Login from './pages/Login';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import CookiePolicy from './pages/CookiePolicy';
 import TermsOfService from './pages/TermsOfService';
+
+// Minimal footer shown on all public pages (login, legal)
+function PublicFooter() {
+  const { pathname } = useLocation();
+  const legalRoutes = ['/login', '/privacy', '/cookies', '/terms'];
+  if (!legalRoutes.some(r => pathname.startsWith(r))) return null;
+  return (
+    <footer style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem', color: '#94a3b8', borderTop: '1px solid #1e293b' }}>
+      <a href="/privacy" style={{ color: '#94a3b8', marginRight: '1rem' }}>Política de Privacidad</a>
+      <a href="/cookies" style={{ color: '#94a3b8', marginRight: '1rem' }}>Política de Cookies</a>
+      <a href="/terms" style={{ color: '#94a3b8' }}>Términos de Servicio</a>
+    </footer>
+  );
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
@@ -34,6 +48,7 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <PublicFooter />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
