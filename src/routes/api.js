@@ -6,6 +6,7 @@ import { body, validationResult } from 'express-validator';
 import ticketValidationService from '../services/ticketValidation.js';
 import paymentService from '../services/payment.js';
 import authMiddleware from '../middleware/auth.js';
+import { subscribe as pushSubscribe, VAPID_PUBLIC } from '../services/pushNotification.js';
 import { db } from '../db/connection.js';
 import { events, ticketTypes, orders } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
@@ -514,5 +515,20 @@ router.post('/validate/batch',
     res.json({ success: true, results, processed: results.length });
   }
 );
+
+// GET VAPID public key (public — no auth needed)
+router.get('/push/vapid-key', (req, res) => {
+  res.json({ publicKey: VAPID_PUBLIC || null });
+});
+
+// POST subscribe to push notifications (auth required)
+router.post('/push/subscribe', authMiddleware, (req, res) => {
+  const { subscription } = req.body;
+  if (!subscription) return res.status(400).json({ error: 'subscription required' });
+  const userId = req.user?.id || req.user?.email;
+  if (!userId) return res.status(401).json({ error: 'user identity required' });
+  pushSubscribe(userId, subscription);
+  res.json({ success: true });
+});
 
 export default router;
