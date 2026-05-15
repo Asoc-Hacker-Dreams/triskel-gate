@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Events from './pages/Events';
 import CreateEvent from './pages/CreateEvent';
 import Settings from './pages/Settings';
+import CheckIn from './pages/CheckIn';
 import Login from './pages/Login';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -44,6 +45,7 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="events" element={<Events />} />
             <Route path="events/create" element={<CreateEvent />} />
+            <Route path="check-in" element={<CheckIn />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>

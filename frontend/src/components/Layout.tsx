@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { CalendarDays, LayoutDashboard, Settings, LogOut, Ticket } from 'lucide-react';
+import { CalendarDays, LayoutDashboard, Settings, LogOut, Ticket, ScanLine } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import '../styles/layout.css';
 
@@ -35,6 +35,14 @@ const Layout: React.FC = () => {
           >
             <LayoutDashboard size={20} />
             <span>Dashboard</span>
+          </NavLink>
+
+          <NavLink
+            to="/check-in"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          >
+            <ScanLine size={20} />
+            <span>Check-in</span>
           </NavLink>
 
           <NavLink
