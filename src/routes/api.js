@@ -483,4 +483,36 @@ router.get('/checkout/sessions/:sessionId/status', async (req, res) => {
   }
 });
 
+/**
+ * BATCH VALIDATION - Upload offline validations
+ */
+router.post('/validate/batch',
+  authMiddleware,
+  async (req, res) => {
+    const { validations } = req.body;
+
+    if (!Array.isArray(validations)) {
+      return res.status(400).json({ error: 'validations must be an array' });
+    }
+
+    const results = [];
+    for (const v of validations) {
+      try {
+        const result = await ticketValidationService.validateTicket(
+          v.qrCode,
+          v.staffId,
+          v.location,
+          v.deviceInfo,
+          req.ip
+        );
+        results.push({ qrCode: v.qrCode, ...result });
+      } catch (err) {
+        results.push({ qrCode: v.qrCode, success: false, error: err.message });
+      }
+    }
+
+    res.json({ success: true, results, processed: results.length });
+  }
+);
+
 export default router;

@@ -177,11 +177,14 @@ router.post('/events',
   handleValidationErrors,
   async (req, res) => {
     try {
+      const { startDate, endDate, ...rest } = req.body;
       const eventData = {
-        ...req.body,
+        ...rest,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
         status: 'active',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
 
       const newEvent = await db
@@ -262,10 +265,13 @@ router.post('/ticket-types',
   handleValidationErrors,
   async (req, res) => {
     try {
+      const { saleStartDate, saleEndDate, ...ttRest } = req.body;
       const ticketTypeData = {
-        ...req.body,
+        ...ttRest,
+        saleStartDate: new Date(saleStartDate),
+        saleEndDate: new Date(saleEndDate),
         isActive: true,
-        createdAt: new Date().toISOString()
+        createdAt: new Date()
       };
 
       const newTicketType = await db
@@ -560,6 +566,51 @@ router.get('/staff',
         error: 'STAFF_ERROR',
         message: 'Error obteniendo lista de staff'
       });
+    }
+  }
+);
+
+/**
+ * TICKETS - Lista de tickets por evento (para sincronización offline)
+ */
+router.get('/events/:eventId/tickets',
+  AuthService.requireRole(['admin', 'staff']),
+  async (req, res) => {
+    try {
+      const { eventId } = req.params;
+      const { isUsed } = req.query;
+
+      let conditions = [eq(tickets.eventId, parseInt(eventId))];
+      if (isUsed !== undefined) {
+        conditions.push(eq(tickets.isUsed, isUsed === 'true'));
+      }
+
+      const result = await db
+        .select({
+          id: tickets.id,
+          ticketNumber: tickets.ticketNumber,
+          holderName: tickets.holderName,
+          holderEmail: tickets.holderEmail,
+          customerName: orders.customerName,
+          customerEmail: orders.customerEmail,
+          ticketTypeId: tickets.ticketTypeId,
+          isUsed: tickets.isUsed,
+          usedAt: tickets.usedAt,
+          qrCode: tickets.qrCode,
+        })
+        .from(tickets)
+        .innerJoin(orders, eq(tickets.orderId, orders.id))
+        .where(and(...conditions));
+
+      res.json({
+        success: true,
+        tickets: result,
+        syncedAt: new Date().toISOString(),
+        count: result.length
+      });
+    } catch (err) {
+      console.error('Error fetching tickets:', err);
+      res.status(500).json({ success: false, error: 'Failed to fetch tickets' });
     }
   }
 );
