@@ -1,6 +1,7 @@
 import { db } from '../db/connection.js';
 import { tickets, events, ticketTypes, validationLogs } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
+import agorapassIntegration from './agorapassIntegration.js';
 
 export class TicketValidationService {
 
@@ -85,6 +86,16 @@ export class TicketValidationService {
 
       await this.logValidation(ticket.id, staffId, 'validate', location, deviceInfo, ipAddress, true, 'Ticket validado correctamente');
 
+      // Trigger AgoraPass integration if enabled
+      if (event.isAgorapassIntegrated) {
+        // Run asynchronously so it doesn't block the scanner response
+        agorapassIntegration.issueStampForAttendee(
+          ticket.holderEmail || ticket.customerEmail, // assuming customerEmail could be used as fallback
+          event.name,
+          'triskell-gate'
+        );
+      }
+
       return {
         success: true,
         message: 'Ticket validado correctamente',
@@ -130,8 +141,6 @@ export class TicketValidationService {
         qrCode,
         eventId,
         isUsed,
-        // startDate,
-        // endDate,
         limit = 50,
         offset = 0
       } = criteria;

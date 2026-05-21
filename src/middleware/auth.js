@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 export class AuthService {
 
   /**
-   * Middleware de autenticación JWT
+   * Middleware de autenticación JWT (Supabase + Legacy dual-mode)
    */
   static async authenticate(req, res, next) {
     try {
@@ -21,32 +21,101 @@ export class AuthService {
         });
       }
 
-      const token = authHeader.substring(7); // Remover "Bearer "
+      const token = authHeader.substring(7); // Remove "Bearer "
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      let decoded;
+      let authMode = 'legacy';
 
-      // Verificar que el usuario todavía existe y está activo
-      const user = await db
-        .select()
-        .from(staff)
-        .where(eq(staff.id, decoded.id))
-        .limit(1);
-
-      if (user.length === 0 || !user[0].isActive) {
-        return res.status(401).json({
-          success: false,
-          error: 'UNAUTHORIZED',
-          message: 'Usuario no válido o inactivo'
-        });
+      // Strategy 1: Try Supabase JWT (new federated auth)
+      const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
+      if (supabaseJwtSecret) {
+        try {
+          decoded = jwt.verify(token, supabaseJwtSecret);
+          authMode = 'supabase';
+        } catch (_supaErr) {
+          // Supabase token invalid; fall through to legacy
+        }
       }
 
-      req.user = {
-        id: user[0].id,
-        email: user[0].email,
-        name: user[0].name,
-        role: user[0].role,
-        permissions: user[0].permissions ? JSON.parse(user[0].permissions) : []
-      };
+      // Strategy 2: Legacy self-issued JWT
+      if (!decoded) {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+        authMode = 'legacy';
+      }
+
+      if (authMode === 'supabase') {
+        // Supabase tokens have .email and .sub (user UUID)
+        const email = decoded.email;
+        const supabaseUserId = decoded.sub;
+
+        if (!email) {
+          return res.status(401).json({ success: false, error: 'UNAUTHORIZED', message: 'Token sin email válido' });
+        }
+
+        // Find or auto-create staff user by email
+        let user = await db
+          .select()
+          .from(staff)
+          .where(eq(staff.email, email.toLowerCase()))
+          .limit(1);
+
+        if (user.length === 0) {
+          // Auto-provision user from Supabase identity
+          const newUser = await db
+            .insert(staff)
+            .values({
+              email: email.toLowerCase(),
+              name: decoded.user_metadata?.full_name || email.split('@')[0],
+              authProvider: 'supabase',
+              authProviderId: supabaseUserId,
+              role: 'staff',
+              isActive: true,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            })
+            .returning();
+          user = newUser;
+        }
+
+        if (!user[0].isActive) {
+          return res.status(401).json({ success: false, error: 'UNAUTHORIZED', message: 'Usuario inactivo' });
+        }
+
+        // Update last login + provider ID if missing
+        await db.update(staff).set({
+          lastLoginAt: new Date().toISOString(),
+          authProviderId: supabaseUserId,
+          updatedAt: new Date().toISOString()
+        }).where(eq(staff.id, user[0].id));
+
+        req.user = {
+          id: user[0].id,
+          email: user[0].email,
+          name: user[0].name,
+          role: user[0].role,
+          permissions: user[0].permissions ? JSON.parse(user[0].permissions) : []
+        };
+
+      } else {
+        // Legacy mode: decoded has { id, email, role }
+        const user = await db
+          .select()
+          .from(staff)
+          .where(eq(staff.id, decoded.id))
+          .limit(1);
+
+        if (user.length === 0 || !user[0].isActive) {
+          return res.status(401).json({ success: false, error: 'UNAUTHORIZED', message: 'Usuario no válido o inactivo' });
+        }
+
+        req.user = {
+          id: user[0].id,
+          email: user[0].email,
+          name: user[0].name,
+          role: user[0].role,
+          permissions: user[0].permissions ? JSON.parse(user[0].permissions) : []
+        };
+      }
 
       next();
 

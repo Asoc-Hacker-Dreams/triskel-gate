@@ -8,6 +8,13 @@
       "when": 1749431102270,
       "tag": "0000_striped_shooting_star",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1775067690120,
+      "tag": "0001_wild_rumiko_fujikawa",
+      "breakpoints": true
     }
   ]
 }

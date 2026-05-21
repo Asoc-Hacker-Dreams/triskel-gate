@@ -1,12 +1,12 @@
 # Dockerfile para TriskelGate Payment Platform
-FROM node:20-alpine AS base
+FROM node:20-bookworm-slim AS base
 
 # Usar tini como init process (ya incluido en el contenedor)
 # No necesitamos instalar paquetes adicionales para funcionalidad básica
 
 # Crear usuario no-root para seguridad
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S triskel -u 1001
+RUN groupadd --system --gid 1001 nodejs \
+    && useradd --system --uid 1001 --gid nodejs --create-home triskel
 
 # Configurar directorio de trabajo
 WORKDIR /app
@@ -49,14 +49,14 @@ RUN npm run build
 RUN rm -rf tests/ .git/ .github/ docs/ *.md
 
 # Etapa de producción
-FROM node:20-alpine AS production
+FROM node:20-bookworm-slim AS production
 
 # Usar tini para manejo de procesos (ya incluido en node:alpine)
 # No es necesario instalar paquetes adicionales
 
 # Crear usuario no-root
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S triskel -u 1001
+RUN groupadd --system --gid 1001 nodejs \
+    && useradd --system --uid 1001 --gid nodejs --create-home triskel
 
 # Configurar directorio de trabajo
 WORKDIR /app
@@ -81,7 +81,7 @@ EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
+    CMD node -e "fetch('http://localhost:3001/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
 
 # Comando de producción
 CMD ["node", "src/index.js"]
