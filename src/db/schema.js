@@ -233,3 +233,18 @@ export const userConsents = pgTable("user_consents", {
   emailIdx: index("idx_tg_consents_email").on(table.email),
   userTypeIdx: uniqueIndex("idx_tg_consents_user_type").on(table.userId, table.consentType),
 }));
+
+export const passkeyCredentials = pgTable("passkey_credentials", {
+  id: serial("id").primaryKey(),
+  credentialId: text("credential_id").notNull(),
+  userId: text("user_id").notNull(),
+  publicKey: text("public_key").notNull(),
+  counter: integer("counter").notNull().default(0),
+  deviceType: text("device_type"),
+  backedUp: boolean("backed_up").default(false),
+  transports: text("transports"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  credentialIdIdx: uniqueIndex("passkey_credential_id_uidx").on(table.credentialId),
+  userIdIdx: index("passkey_user_id_idx").on(table.userId),
+}));

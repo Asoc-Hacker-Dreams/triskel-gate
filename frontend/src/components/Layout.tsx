@@ -17,7 +17,10 @@ const Layout: React.FC = () => {
     ? user.email.substring(0, 1).toUpperCase()
     : 'U';
 
-  const displayName = user?.user_metadata?.full_name || user?.email || 'User';
+  const displayName = (user as any)?.user_metadata?.full_name
+    || (user as any)?.name
+    || user?.email
+    || 'User';
 
   return (
     <div className="layout-container">

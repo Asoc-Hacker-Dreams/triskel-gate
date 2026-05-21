@@ -4,11 +4,12 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import winston from 'winston';
-import { runMigrations } from './db/connection.js';
+import { db } from './db/connection.js';
 import apiRoutes from './routes/api.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import pwaRoutes from './routes/pwa.js';
+import passkeyRoutes from './routes/passkey.js';
 import { AuthService } from './middleware/auth.js';
 import { setupSwagger } from './config/swagger.js';
 
@@ -98,6 +99,7 @@ app.use('/api', apiRoutes);
 app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
 app.use('/pwa', pwaRoutes);
+app.use('/api/passkey', passkeyRoutes);
 
 // Health check endpoint para Docker y monitoring
 app.get('/health', (req, res) => {
@@ -216,9 +218,7 @@ async function initializeApp() {
   try {
     logger.info('🚀 Iniciando TriskelGate Payment Platform...');
 
-    // Ejecutar migraciones de base de datos
-    await runMigrations();
-    logger.info('✅ Base de datos inicializada');
+    logger.info('✅ Base de datos inicializada (migrations via Liquibase)');
 
     // Crear usuario administrador por defecto si no existe
     await createDefaultAdmin();

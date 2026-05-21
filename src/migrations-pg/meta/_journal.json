@@ -22,6 +22,13 @@
       "when": 1747310361000,
       "tag": "0003_gdpr_user_consents",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1748000000000,
+      "tag": "0004_passkey_credentials",
+      "breakpoints": true
     }
   ]
 }

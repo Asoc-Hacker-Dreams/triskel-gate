@@ -28,7 +28,7 @@ function PublicFooter() {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -38,7 +38,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!session) {
+  if (!session && !user) {
     return <Navigate to="/login" replace />;
   }
 

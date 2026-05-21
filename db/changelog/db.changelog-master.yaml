@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - include:
+      file: sql/001_initial_schema.sql
+      relativeToChangelogFile: true
+  - include:
+      file: sql/002_agorapass_bridge.sql
+      relativeToChangelogFile: true
+  - include:
+      file: sql/003_gdpr_user_consents.sql
+      relativeToChangelogFile: true
+  - include:
+      file: sql/004_passkey_credentials.sql
+      relativeToChangelogFile: true

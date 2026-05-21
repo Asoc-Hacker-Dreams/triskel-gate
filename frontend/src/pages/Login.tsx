@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { Ticket, Mail } from 'lucide-react';
+import { Ticket, Mail, KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+import { startAuthentication } from '@simplewebauthn/browser';
 import './Login.css';
 
 const Login: React.FC = () => {
+  const { setPasskeySession } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [magicEmail, setMagicEmail] = useState('');
@@ -45,6 +48,43 @@ const Login: React.FC = () => {
     }
   };
 
+  const handlePasskeyLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const optRes = await fetch('/api/passkey/login/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (!optRes.ok) throw new Error('Could not get passkey options from server');
+      const { _challengeKey, ...webAuthnOptions } = await optRes.json();
+
+      const response = await startAuthentication({ optionsJSON: webAuthnOptions });
+
+      const verifyRes = await fetch('/api/passkey/login/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ response, challengeKey: _challengeKey }),
+      });
+      const result = await verifyRes.json();
+      if (!result.success) throw new Error(result.error || 'Passkey verification failed');
+
+      setPasskeySession(result.user, result.token);
+      window.location.href = '/dashboard';
+    } catch (err: any) {
+      if (err.name === 'NotAllowedError') {
+        setError('Passkey authentication was cancelled.');
+      } else if (err.name === 'InvalidStateError') {
+        setError('No passkeys registered on this device for your account.');
+      } else {
+        setError(err.message || 'Passkey login failed');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="login-page">
       <div className="login-branding">
@@ -71,6 +111,17 @@ const Login: React.FC = () => {
             </div>
           ) : (
             <>
+              <button
+                className="login-passkey-btn"
+                onClick={handlePasskeyLogin}
+                disabled={loading}
+              >
+                <KeyRound size={20} />
+                <span>Sign in with Passkey</span>
+              </button>
+
+              <div className="login-divider"><span>or use email</span></div>
+
               <form className="login-magic-form" onSubmit={handleMagicLink}>
                 <label htmlFor="magic-email">Email</label>
                 <div className="login-magic-row">
@@ -82,6 +133,7 @@ const Login: React.FC = () => {
                     placeholder="your@email.com"
                     required
                     disabled={loading}
+                    autoComplete="email"
                   />
                   <button type="submit" className="login-provider-btn" disabled={loading || !magicEmail}>
                     <Mail size={18} />

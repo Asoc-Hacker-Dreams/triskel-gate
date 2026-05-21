@@ -1,28 +1,22 @@
-FROM node:20-bookworm-slim AS builder
+FROM node:20-alpine
+
+RUN apk add --no-cache curl dumb-init \
+    && addgroup -g 1001 -S nodejs \
+    && adduser -S -u 1001 -G nodejs triskell
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev --prefer-offline
 
-COPY . .
+# Use --chown on COPY to avoid a separate chown layer that duplicates node_modules
+COPY --chown=triskell:nodejs src ./src
+COPY --chown=triskell:nodejs public ./public
 
-FROM node:20-bookworm-slim AS runner
-
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends curl dumb-init \
-  && rm -rf /var/lib/apt/lists/* \
-  && groupadd --gid 1001 nodejs \
-  && useradd --uid 1001 --gid nodejs --create-home --shell /usr/sbin/nologin triskell
-
-WORKDIR /app
-
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/public ./public
-
-RUN mkdir -p logs public/qr-codes && chown -R triskell:nodejs /app
+# Only chown the small runtime-writable dirs (not node_modules)
+RUN mkdir -p logs public/qr-codes \
+    && chown triskell:nodejs logs public/qr-codes
 
 USER triskell
 
